@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.github.animeshtrivedi.anoc;
 
 import com.google.common.collect.ImmutableList;
@@ -31,7 +47,6 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.List;
 
 
@@ -77,9 +92,9 @@ public class ParquetToArrow {
         this.ra = new RootAllocator(Integer.MAX_VALUE);
     }
 
-    public void setInputOutput(String inputParquetFile, String outputArrowFile) throws Exception {
-        this.arrowPath = new Path(outputArrowFile);
-        Path parqutFilePath = new Path(inputParquetFile);
+    public void setInputOutput() throws Exception {
+        this.arrowPath = new Path(BenchmarkConfiguration.output);
+        Path parqutFilePath = new Path(BenchmarkConfiguration.input);
         this.parquetFooter = ParquetFileReader.readFooter(conf,
                 parqutFilePath,
                 ParquetMetadataConverter.NO_FILTER);
@@ -182,7 +197,8 @@ public class ParquetToArrow {
         }
     }
 
-    public void process() throws Exception {
+    public long process() throws Exception {
+        long totalRecords = 0;
         PageReadStore pageReadStore = null;
         List<ColumnDescriptor> colDesc = parquetSchema.getColumns();
         List<FieldVector> fieldVectors = this.arrowVectorSchemaRoot.getFieldVectors();
@@ -196,14 +212,13 @@ public class ParquetToArrow {
             if(pageReadStore.getRowCount() > Integer.MAX_VALUE)
                 throw new Exception(" More than Integer.MAX_VALUE is not supported " + pageReadStore.getRowCount());
             int rows = (int) pageReadStore.getRowCount();
+            totalRecords+=rows;
             // this batch of Arrow contains these many records
             this.arrowVectorSchemaRoot.setRowCount(rows);
-
             int i = 0;
             while (i < size){
                 ColumnDescriptor col = colDesc.get(i);
                 switch(col.getType()) {
-
                     case INT32: writeIntColumn(colReader.getColumnReader(col),
                             col.getMaxDefinitionLevel(),
                             fieldVectors.get(i),
@@ -237,6 +252,7 @@ public class ParquetToArrow {
         }
         this.arrowFileWriter.end();
         this.arrowFileWriter.close();
+        return totalRecords;
     }
 
     private void writeIntColumn(ColumnReader creader, int dmax, FieldVector fieldVector, int rows) throws Exception {
