@@ -32,6 +32,27 @@
   </properties>
 
   <dependencies>
+    <!-- https://mvnrepository.com/artifact/log4j/log4j -->
+    <dependency>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+      <version>1.2.17</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-client</artifactId>
+      <version>2.7.3</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.crail</groupId>
+      <artifactId>client</artifactId>
+      <version>1.1-incubating-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.parquet</groupId>
+      <artifactId>parquet-tools</artifactId>
+      <version>1.8.2</version>
+    </dependency>
     <!-- https://mvnrepository.com/artifact/org.apache.arrow/arrow-java-root -->
     <dependency>
       <groupId>org.apache.arrow</groupId>

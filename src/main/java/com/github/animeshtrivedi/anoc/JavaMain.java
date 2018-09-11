@@ -5,7 +5,8 @@ package com.github.animeshtrivedi.anoc;
  */
 public class JavaMain {
     public static void main(String[] args) {
-        ScalaMain sm = new ScalaMain();
-        System.out.println("Hello World! " + ScalaMain.name() + sm.getClass().getCanonicalName()); // Display the string.
+        System.out.println("Welcome to Parquet Benchmarking project");
+        ParseOptions options = new ParseOptions();
+        options.parse(args);
     }
 }
