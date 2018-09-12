@@ -50,7 +50,7 @@ import java.io.FileOutputStream;
 import java.util.List;
 
 
-public class ParquetToArrow {
+public class ParquetToArrow extends BenchmarkResults {
     final static Logger logger = Logger.getLogger(ParquetToArrow.class);
     // parquet objects
     private Configuration conf;
@@ -167,7 +167,7 @@ public class ParquetToArrow {
             }
         }
         this.arrowSchema = new Schema(childrenBuilder.build(), null);
-        logger.info("Arrow Schema is " + this.arrowSchema.toString());
+        logger.debug("Arrow Schema is " + this.arrowSchema.toString());
     }
 
     private void setArrowFileWriter(String arrowFileName) throws Exception {
@@ -197,62 +197,71 @@ public class ParquetToArrow {
         }
     }
 
-    public long process() throws Exception {
-        long totalRecords = 0;
-        PageReadStore pageReadStore = null;
-        List<ColumnDescriptor> colDesc = parquetSchema.getColumns();
-        List<FieldVector> fieldVectors = this.arrowVectorSchemaRoot.getFieldVectors();
-        int size = colDesc.size();
-        DumpGroupConverter conv = new DumpGroupConverter();
-        this.arrowFileWriter.start();
-        pageReadStore = parquetFileReader.readNextRowGroup();
-        while (pageReadStore != null) {
-            ColumnReadStoreImpl colReader = new ColumnReadStoreImpl(pageReadStore, conv,
-                    this.parquetSchema, this.parquetFooter.getFileMetaData().getCreatedBy());
-            if(pageReadStore.getRowCount() > Integer.MAX_VALUE)
-                throw new Exception(" More than Integer.MAX_VALUE is not supported " + pageReadStore.getRowCount());
-            int rows = (int) pageReadStore.getRowCount();
-            totalRecords+=rows;
-            // this batch of Arrow contains these many records
-            this.arrowVectorSchemaRoot.setRowCount(rows);
-            int i = 0;
-            while (i < size){
-                ColumnDescriptor col = colDesc.get(i);
-                switch(col.getType()) {
-                    case INT32: writeIntColumn(colReader.getColumnReader(col),
-                            col.getMaxDefinitionLevel(),
-                            fieldVectors.get(i),
-                            rows);
-                        break;
-
-                    case INT64: writeLongColumn(colReader.getColumnReader(col),
-                            col.getMaxDefinitionLevel(),
-                            fieldVectors.get(i),
-                            rows);
-                        break;
-
-                    case DOUBLE: writeDoubleColumn(colReader.getColumnReader(col),
-                            col.getMaxDefinitionLevel(),
-                            fieldVectors.get(i),
-                            rows);
-                        break;
-
-                    case BINARY: writeBinaryColumn(colReader.getColumnReader(col),
-                            col.getMaxDefinitionLevel(),
-                            fieldVectors.get(i),
-                            rows);
-                        break;
-
-                    default : throw new Exception(" NYI " + col.getType());
-                }
-                i+=1;
-            }
+    public void run() {
+        try {
+            long start = System.nanoTime();
+            PageReadStore pageReadStore = null;
+            List<ColumnDescriptor> colDesc = parquetSchema.getColumns();
+            List<FieldVector> fieldVectors = this.arrowVectorSchemaRoot.getFieldVectors();
+            int size = colDesc.size();
+            DumpGroupConverter conv = new DumpGroupConverter();
+            this.arrowFileWriter.start();
             pageReadStore = parquetFileReader.readNextRowGroup();
-            this.arrowFileWriter.writeBatch();
+            while (pageReadStore != null) {
+                ColumnReadStoreImpl colReader = new ColumnReadStoreImpl(pageReadStore, conv,
+                        this.parquetSchema, this.parquetFooter.getFileMetaData().getCreatedBy());
+                if (pageReadStore.getRowCount() > Integer.MAX_VALUE)
+                    throw new Exception(" More than Integer.MAX_VALUE is not supported " + pageReadStore.getRowCount());
+                int rows = (int) pageReadStore.getRowCount();
+                this.totalRows += rows;
+                // this batch of Arrow contains these many records
+                this.arrowVectorSchemaRoot.setRowCount(rows);
+                int i = 0;
+                while (i < size) {
+                    ColumnDescriptor col = colDesc.get(i);
+                    switch (col.getType()) {
+                        case INT32:
+                            writeIntColumn(colReader.getColumnReader(col),
+                                    col.getMaxDefinitionLevel(),
+                                    fieldVectors.get(i),
+                                    rows);
+                            break;
+
+                        case INT64:
+                            writeLongColumn(colReader.getColumnReader(col),
+                                    col.getMaxDefinitionLevel(),
+                                    fieldVectors.get(i),
+                                    rows);
+                            break;
+
+                        case DOUBLE:
+                            writeDoubleColumn(colReader.getColumnReader(col),
+                                    col.getMaxDefinitionLevel(),
+                                    fieldVectors.get(i),
+                                    rows);
+                            break;
+
+                        case BINARY:
+                            writeBinaryColumn(colReader.getColumnReader(col),
+                                    col.getMaxDefinitionLevel(),
+                                    fieldVectors.get(i),
+                                    rows);
+                            break;
+
+                        default:
+                            throw new Exception(" NYI " + col.getType());
+                    }
+                    i += 1;
+                }
+                pageReadStore = parquetFileReader.readNextRowGroup();
+                this.arrowFileWriter.writeBatch();
+            }
+            this.arrowFileWriter.end();
+            this.arrowFileWriter.close();
+            this.runtimeInNS = System.nanoTime() - start;
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        this.arrowFileWriter.end();
-        this.arrowFileWriter.close();
-        return totalRecords;
     }
 
     private void writeIntColumn(ColumnReader creader, int dmax, FieldVector fieldVector, int rows) throws Exception {
@@ -263,6 +272,7 @@ public class ParquetToArrow {
         for(int i = 0; i < rows; i++) {
             if(creader.getCurrentDefinitionLevel() == dmax){
                 intVector.setSafe(i, 1, creader.getInteger());
+                this.intCount++;
             } else {
                 intVector.setNull(i);
             }
@@ -279,6 +289,7 @@ public class ParquetToArrow {
         for(int i = 0; i < rows; i++) {
             if(creader.getCurrentDefinitionLevel() == dmax){
                 bigIntVector.setSafe(i, 1, creader.getLong());
+                this.longCount++;
             } else {
                 bigIntVector.setNull(i);
             }
@@ -295,6 +306,7 @@ public class ParquetToArrow {
         for(int i = 0; i < rows; i++) {
             if(creader.getCurrentDefinitionLevel() == dmax){
                 float8Vector.setSafe(i, 1, creader.getDouble());
+                this.float8Count++;
             } else {
                 float8Vector.setNull(i);
             }
@@ -314,6 +326,8 @@ public class ParquetToArrow {
                 varBinaryVector.setIndexDefined(i);
                 varBinaryVector.setValueLengthSafe(i, data.length);
                 varBinaryVector.setSafe(i, data);
+                this.binaryCount++;
+                this.binarySizeCount+=data.length;
             } else {
                 varBinaryVector.setNull(i);
             }

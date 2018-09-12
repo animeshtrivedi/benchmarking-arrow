@@ -36,16 +36,6 @@ public class ArrowSingleFileReader extends BenchmarkResults {
     private List<ArrowBlock> arrowBlocks;
     private List<FieldVector> fieldVector;
 
-    private long longCount;
-    private long intCount;
-    private long float4Count;
-    private long float8Count;
-    private long binaryCount;
-    private long binarySizeCount;
-    private double checksum;
-    private long totalRows;
-    private long runTimeInNanoSecs;
-
     public void init(String fileName) throws Exception {
         Configuration conf = new Configuration();
         Path path = new Path(fileName);
@@ -58,15 +48,6 @@ public class ArrowSingleFileReader extends BenchmarkResults {
         this.root = arrowFileReader.getVectorSchemaRoot();
         this.arrowBlocks = arrowFileReader.getRecordBlocks();
         this.fieldVector = root.getFieldVectors();
-
-        this.longCount = 0;
-        this.intCount = 0;
-        this.float4Count = 0;
-        this.float8Count = 0;
-        this.binaryCount = 0;
-        this.binarySizeCount = 0;
-        this.totalRows = 0;
-        this.runTimeInNanoSecs = 0;
     }
 
     private void consumeFloat4(FieldVector fv) {
@@ -165,45 +146,10 @@ public class ArrowSingleFileReader extends BenchmarkResults {
                 }
             }
             long s3 = System.nanoTime();
-            this.runTimeInNanoSecs = s3 - s2;
+            this.runtimeInNS = s3 - s2;
             arrowFileReader.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    @Override
-    long totalInts() {
-        return this.intCount;
-    }
-
-    @Override
-    long totalLongs() {
-        return this.longCount;
-    }
-
-    @Override
-    long totalFloat8() {
-        return this.float8Count;
-    }
-
-    @Override
-    long totalFloat4() {
-        return this.float4Count;
-    }
-
-    @Override
-    long totalBinary() {
-        return this.binaryCount;
-    }
-
-    @Override
-    long totalBinarySize() {
-        return this.binarySizeCount;
-    }
-
-    @Override
-    double getChecksum(){
-        return this.checksum;
     }
 }

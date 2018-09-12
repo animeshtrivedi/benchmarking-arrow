@@ -28,6 +28,24 @@ object Utils {
     fname(0) != '_' && fname(0) != '.'
   }
 
+  def sizeToSizeStr2(size: Long): String = {
+    val kbScale: Long = 1024
+    val mbScale: Long = 1024 * kbScale
+    val gbScale: Long = 1024 * mbScale
+    val tbScale: Long = 1024 * gbScale
+    if (size > tbScale) {
+      size / tbScale + "TiB"
+    } else if (size > gbScale) {
+      size / gbScale  + "GiB"
+    } else if (size > mbScale) {
+      size / mbScale + "MiB"
+    } else if (size > kbScale) {
+      size / kbScale + "KiB"
+    } else {
+      size + "B"
+    }
+  }
+
   def enumerateWithSize(directoryName:String):Array[(String, Long)] = {
     if(directoryName != null) {
       val path = new Path(directoryName)

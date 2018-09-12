@@ -33,39 +33,40 @@ public class Main {
                 throw new Exception("Parallel request " + BenchmarkConfiguration.parallel +
                         " is more than the number of files " + list.length);
             }
+            BenchmarkResults[] results = new BenchmarkResults[BenchmarkConfiguration.parallel];
             if(BenchmarkConfiguration.testName.compareToIgnoreCase("ParquetToArrow") == 0){
-                ParquetToArrow[] pq = new ParquetToArrow[BenchmarkConfiguration.parallel];
-                for(int i =0; i < BenchmarkConfiguration.parallel; i++){
-                    pq[i]  = new ParquetToArrow();
-                    pq[i].setInputOutput(list[i]._1(), BenchmarkConfiguration.outputDir);
-                    long tr = pq[i].process();
-                    logger.info("\t [" +i+"] file " + list[i]._1()+ " contains record " + tr);
+                for(int i =0; i < BenchmarkConfiguration.parallel; i++) {
+                    ParquetToArrow temp = new ParquetToArrow();
+                    temp.setInputOutput(list[i]._1(), BenchmarkConfiguration.outputDir);
+                    results[i] = temp;;
                 }
-            } else if (BenchmarkConfiguration.testName.compareToIgnoreCase("ArrowRead") == 0){
-                // step 2: pass them to individual threads and initialize
-                ArrowSingleFileReader[] allReaders = new ArrowSingleFileReader[BenchmarkConfiguration.parallel];
-                for(int i =0; i < BenchmarkConfiguration.parallel; i++){
-                    allReaders[i] = new ArrowSingleFileReader();
-                    allReaders[i].init(list[i]._1());
+            } else if (BenchmarkConfiguration.testName.compareToIgnoreCase("ArrowRead") == 0) {
+                for(int i =0; i < BenchmarkConfiguration.parallel; i++) {
+                    ArrowSingleFileReader temp = new ArrowSingleFileReader();
+                    temp.init(list[i]._1());
+                    results[i] = temp;
                 }
-                long start = System.nanoTime();
-                for(int i =0; i < BenchmarkConfiguration.parallel; i++){
-                    allReaders[i].start();
-                }
-                for(int i =0; i < BenchmarkConfiguration.parallel; i++){
-                    allReaders[i].join();
-                }
-                long end = System.nanoTime();
-
-                long totalBytes = 0;
-                for(int i =0; i < BenchmarkConfiguration.parallel; i++){
-                    totalBytes+=allReaders[i].getTotalBytesRead();
-                }
-                double bandwidthGbps = totalBytes * 8 / (end - start);
-                System.out.println("Total bytes: " + totalBytes + " bandwidth " + bandwidthGbps + " Gbps");
             } else {
                 throw new Exception("Illegal test name: " + BenchmarkConfiguration.testName);
             }
+            long start = System.nanoTime();
+            for(int i =0; i < BenchmarkConfiguration.parallel; i++){
+                results[i].start();
+            }
+            for(int i =0; i < BenchmarkConfiguration.parallel; i++){
+                results[i].join();
+            }
+            long end = System.nanoTime();
+
+            long totalBytes = 0;
+            for(int i =0; i < BenchmarkConfiguration.parallel; i++){
+                totalBytes+=results[i].getTotalBytesProcessed();;
+                System.out.println("\t ["+i+"] " + results[i].summary());
+            }
+            String bandwidthGbps = String.format("%.2f", (((double)totalBytes * 8) / (end - start)));
+            System.out.println("-----------------------------------------------------------------------");
+            System.out.println("Total bytes: " + totalBytes + "(" + Utils.sizeToSizeStr2(totalBytes) + ") bandwidth " + bandwidthGbps + " Gbps");
+            System.out.println("-----------------------------------------------------------------------");
         } catch (Exception e) {
             e.printStackTrace();
         }
