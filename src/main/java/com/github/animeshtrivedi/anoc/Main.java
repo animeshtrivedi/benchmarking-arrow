@@ -16,27 +16,32 @@
  */
 package com.github.animeshtrivedi.anoc;
 
+import org.apache.log4j.Logger;
 import scala.Tuple2;
 
 public class Main {
+    final static Logger logger = Logger.getLogger(Main.class);
     public static void main(String[] args) {
         System.out.println("Welcome to Parquet Benchmarking project");
         ParseOptions options = new ParseOptions();
         options.parse(args);
         try {
+            // step 1: enumerate all files which are there and take top "parallel" items
+            Tuple2<String, Object>[] list =
+                    Utils.enumerateWithSize(BenchmarkConfiguration.inputDir);
+            if(list.length < BenchmarkConfiguration.parallel){
+                throw new Exception("Parallel request " + BenchmarkConfiguration.parallel +
+                        " is more than the number of files " + list.length);
+            }
             if(BenchmarkConfiguration.testName.compareToIgnoreCase("ParquetToArrow") == 0){
-                ParquetToArrow pq = new ParquetToArrow();
-                pq.setInputOutput();
-                long tr = pq.process();
-                System.out.println("Total record read and written " + tr);
-            } else if (BenchmarkConfiguration.testName.compareToIgnoreCase("ArrowRead") == 0){
-                // step 1: enumerate all files which are there and take top "parallel" items
-                Tuple2<String, Object>[] list =
-                        Utils.enumerateWithSize(BenchmarkConfiguration.input);
-                if(list.length < BenchmarkConfiguration.parallel){
-                    throw new Exception("Parallel request " + BenchmarkConfiguration.parallel +
-                            " is more than the number of files " + list.length);
+                ParquetToArrow[] pq = new ParquetToArrow[BenchmarkConfiguration.parallel];
+                for(int i =0; i < BenchmarkConfiguration.parallel; i++){
+                    pq[i]  = new ParquetToArrow();
+                    pq[i].setInputOutput(list[i]._1(), BenchmarkConfiguration.outputDir);
+                    long tr = pq[i].process();
+                    logger.info("\t [" +i+"] file " + list[i]._1()+ " contains record " + tr);
                 }
+            } else if (BenchmarkConfiguration.testName.compareToIgnoreCase("ArrowRead") == 0){
                 // step 2: pass them to individual threads and initialize
                 ArrowSingleFileReader[] allReaders = new ArrowSingleFileReader[BenchmarkConfiguration.parallel];
                 for(int i =0; i < BenchmarkConfiguration.parallel; i++){

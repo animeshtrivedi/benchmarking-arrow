@@ -45,7 +45,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.crail</groupId>
-      <artifactId>client</artifactId>
+      <artifactId>crail-client</artifactId>
       <version>1.1-incubating-SNAPSHOT</version>
     </dependency>
     <dependency>

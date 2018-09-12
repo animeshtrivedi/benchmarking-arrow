@@ -92,9 +92,9 @@ public class ParquetToArrow {
         this.ra = new RootAllocator(Integer.MAX_VALUE);
     }
 
-    public void setInputOutput() throws Exception {
-        this.arrowPath = new Path(BenchmarkConfiguration.output);
-        Path parqutFilePath = new Path(BenchmarkConfiguration.input);
+    public void setInputOutput(String inputParquetFileName, String arrowOutputDirectory) throws Exception {
+        this.arrowPath = new Path(arrowOutputDirectory);
+        Path parqutFilePath = new Path(inputParquetFileName);
         this.parquetFooter = ParquetFileReader.readFooter(conf,
                 parqutFilePath,
                 ParquetMetadataConverter.NO_FILTER);
@@ -167,7 +167,7 @@ public class ParquetToArrow {
             }
         }
         this.arrowSchema = new Schema(childrenBuilder.build(), null);
-        logger.debug("Arrow Schema is " + this.arrowSchema.toString());
+        logger.info("Arrow Schema is " + this.arrowSchema.toString());
     }
 
     private void setArrowFileWriter(String arrowFileName) throws Exception {
@@ -176,7 +176,7 @@ public class ParquetToArrow {
         //TODO: what are options here?
         DictionaryProvider.MapDictionaryProvider provider = new DictionaryProvider.MapDictionaryProvider();
         if(BenchmarkConfiguration.destination.compareToIgnoreCase("local") == 0) {
-            logger.debug("Creating a local file with name : " + arrowFileName);
+            logger.info("Creating a local file with name : " + arrowFileName);
             File arrowFile = new File("./" + arrowFileName);
             FileOutputStream fileOutputStream = new FileOutputStream(arrowFile);
             this.arrowFileWriter = new ArrowFileWriter(this.arrowVectorSchemaRoot,
@@ -184,7 +184,7 @@ public class ParquetToArrow {
                     fileOutputStream.getChannel());
         } else if(BenchmarkConfiguration.destination.compareToIgnoreCase("hdfs") == 0){
             /* use HDFS files */
-            logger.debug("Creating an HDFS file with name : " + arrowFullPath);
+            logger.info("Creating an HDFS file with name : " + arrowFullPath);
             // create the file stream on HDFS
             Path path = new Path(arrowFullPath);
             FileSystem fs = FileSystem.get(path.toUri(), conf);

@@ -28,8 +28,8 @@ public class BenchmarkConfiguration {
     static String[] validTests ={"parquetToArrow", "arrowRead"};
     static String testName = "parquetToArrow";
     // input
-    static String input = null;
-    static String output = null;
+    static String inputDir = null;
+    static String outputDir = null;
 
     // number of parallel instances
     static int parallel = 1;

@@ -27,10 +27,11 @@ public class ParseOptions {
         options = new Options();
         options.addOption("h", "help", false, "show help.");
         options.addOption("t", "test", true, "test to perform - ParquetToArrow OR ArrowRead (case in-sensitive).");
-        options.addOption("i", "input", true, "input filename.");
-        options.addOption("o", "output", true, "output filename.");
+        options.addOption("i", "input", true, "input directory containing files.");
+        options.addOption("o", "output", true, "output directory location.");
         options.addOption("d", "destination", true, "output destination: hdfs, crail, or local.");
         options.addOption("w", "writeBufferSize", true, "write buffer size, default: 1MB");
+        options.addOption("p", "parallel", true, "number of parallel instances");
     }
 
     public void show_help() {
@@ -51,16 +52,19 @@ public class ParseOptions {
                 BenchmarkConfiguration.testName = cmd.getOptionValue("t").trim();
             }
             if (cmd.hasOption("i")) {
-                BenchmarkConfiguration.input = cmd.getOptionValue("i").trim();
+                BenchmarkConfiguration.inputDir = cmd.getOptionValue("i").trim();
             }
             if (cmd.hasOption("o")) {
-                BenchmarkConfiguration.output = cmd.getOptionValue("o").trim();
+                BenchmarkConfiguration.outputDir = cmd.getOptionValue("o").trim();
             }
             if (cmd.hasOption("d")) {
                 BenchmarkConfiguration.destination = cmd.getOptionValue("d").trim();
             }
             if (cmd.hasOption("w")) {
                 BenchmarkConfiguration.writeBufferSize = Integer.parseInt(cmd.getOptionValue("w").trim());
+            }
+            if (cmd.hasOption("p")) {
+                BenchmarkConfiguration.parallel = Integer.parseInt(cmd.getOptionValue("p").trim());
             }
 
         } catch (ParseException e) {
