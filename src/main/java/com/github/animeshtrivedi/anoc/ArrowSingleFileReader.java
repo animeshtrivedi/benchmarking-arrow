@@ -141,7 +141,7 @@ public class ArrowSingleFileReader extends BenchmarkResults {
                 this.totalRows += root.getRowCount();
                 /* read all the fields */
                 int numCols = fieldVector.size();
-                for (int j = 0; i < numCols; j++) {
+                for (int j = 0; j < numCols; j++) {
                     FieldVector fv = fieldVector.get(j);
                     switch (fv.getMinorType()) {
                         case INT:
