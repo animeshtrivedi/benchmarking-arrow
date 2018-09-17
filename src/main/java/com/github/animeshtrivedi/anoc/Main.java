@@ -38,12 +38,18 @@ public class Main {
                 for(int i =0; i < BenchmarkConfiguration.parallel; i++) {
                     ParquetToArrow temp = new ParquetToArrow();
                     temp.setInputOutput(list[i]._1(), BenchmarkConfiguration.outputDir);
-                    results[i] = temp;;
+                    results[i] = temp;
                 }
             } else if (BenchmarkConfiguration.testName.compareToIgnoreCase("ArrowRead") == 0) {
                 for(int i =0; i < BenchmarkConfiguration.parallel; i++) {
                     ArrowSingleFileReader temp = new ArrowSingleFileReader();
                     temp.init(list[i]._1());
+                    results[i] = temp;
+                }
+            } else if (BenchmarkConfiguration.testName.compareToIgnoreCase("ArrowMemRead") == 0) {
+                for(int i =0; i < BenchmarkConfiguration.parallel; i++) {
+                    ArrowMemoryReader temp = new ArrowMemoryReader();
+                    temp.setInputOutput(list[i]._1());
                     results[i] = temp;
                 }
             } else {

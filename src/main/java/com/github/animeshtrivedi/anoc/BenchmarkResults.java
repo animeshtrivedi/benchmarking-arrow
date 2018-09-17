@@ -96,13 +96,13 @@ abstract public class BenchmarkResults extends Thread {
     }
 
     String summary(){
-        return "totalRows: " + totalRows +
-                " || ints: " + intCount +
-                " , long " + longCount +
-                " , float4 " + float4Count +
-                " , double " + float8Count +
-                " , binary " + binaryCount +
-                " binarySize " + binarySizeCount +
+        return "totalRows: " + totalRows() +
+                " || ints: " + totalInts() +
+                " , long " + totalLongs() +
+                " , float4 " + totalFloat4() +
+                " , double " + totalFloat8() +
+                " , binary " + totalBinary() +
+                " binarySize " + totalBinarySize() +
                 " || runtimeInNS " + getRunTimeinNS() +
                 " , totalBytesProcessed " + getTotalBytesProcessed() +
                 " , bandwidth " + getBandwidthGbps() + " Gbps.";

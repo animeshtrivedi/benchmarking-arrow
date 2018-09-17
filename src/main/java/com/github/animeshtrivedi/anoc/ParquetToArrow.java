@@ -47,6 +47,7 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.nio.channels.WritableByteChannel;
 import java.util.List;
 
 
@@ -59,11 +60,13 @@ public class ParquetToArrow extends BenchmarkResults {
     private ParquetMetadata parquetFooter;
 
     // arrow objects
-    private Path arrowPath;
     private Schema arrowSchema;
     private VectorSchemaRoot arrowVectorSchemaRoot;
     private ArrowFileWriter arrowFileWriter;
     private RootAllocator ra;
+
+    // read,write channel
+    private WritableByteChannel wchannel;
 
     private class DumpConverter extends PrimitiveConverter {
         DumpGroupConverter asGroupConverter = new DumpGroupConverter();
@@ -90,25 +93,45 @@ public class ParquetToArrow extends BenchmarkResults {
         // (i) what does this mean to set it to Integer.MAX_VALUE
         // (ii) what other options are there for RootAllocator
         this.ra = new RootAllocator(Integer.MAX_VALUE);
+        this.wchannel = null;
     }
 
-    public void setInputOutput(String inputParquetFileName, String arrowOutputDirectory) throws Exception {
-        this.arrowPath = new Path(arrowOutputDirectory);
-        Path parqutFilePath = new Path(inputParquetFileName);
+    private Path _setParquetInput(String inputParquetFileName) throws Exception {
+        Path parquetFilePath = new Path(inputParquetFileName);
         this.parquetFooter = ParquetFileReader.readFooter(conf,
-                parqutFilePath,
+                parquetFilePath,
                 ParquetMetadataConverter.NO_FILTER);
 
         FileMetaData mdata = this.parquetFooter.getFileMetaData();
         this.parquetSchema = mdata.getSchema();
         this.parquetFileReader = new ParquetFileReader(conf,
                 mdata,
-                parqutFilePath,
+                parquetFilePath,
                 this.parquetFooter.getBlocks(),
                 this.parquetSchema.getColumns());
+        return parquetFilePath;
+    }
 
+
+    public void setInputOutput(String inputParquetFileName, String arrowOutputDirectory) throws Exception {
+        Path p = _setParquetInput(inputParquetFileName);
+        setOutputChannel(convertParquetToArrowFileName(p), arrowOutputDirectory);
+        _setupArrow();
+    }
+
+    public void setInputOutput(String inputParquetFileName, WritableByteChannel wchannel) throws Exception {
+        _setParquetInput(inputParquetFileName);
+        this.wchannel = wchannel;
+        _setupArrow();
+    }
+
+    private void _setupArrow() throws Exception {
         makeArrowSchema();
-        setArrowFileWriter(convertParquetToArrowFileName(parqutFilePath));
+        this.arrowVectorSchemaRoot = VectorSchemaRoot.create(this.arrowSchema, this.ra);
+        DictionaryProvider.MapDictionaryProvider provider = new DictionaryProvider.MapDictionaryProvider();
+        this.arrowFileWriter = new ArrowFileWriter(this.arrowVectorSchemaRoot,
+                provider,
+                this.wchannel);
     }
 
     private String convertParquetToArrowFileName(Path parquetNamePath){
@@ -170,28 +193,22 @@ public class ParquetToArrow extends BenchmarkResults {
         logger.debug("Arrow Schema is " + this.arrowSchema.toString());
     }
 
-    private void setArrowFileWriter(String arrowFileName) throws Exception {
-        String arrowFullPath = this.arrowPath.toUri().toString() + "/" + arrowFileName;
-        this.arrowVectorSchemaRoot = VectorSchemaRoot.create(this.arrowSchema, this.ra);
-        //TODO: what are options here?
-        DictionaryProvider.MapDictionaryProvider provider = new DictionaryProvider.MapDictionaryProvider();
+    private void setOutputChannel(String arrowFileName, String arrowOutputDirectory) throws Exception {
         if(BenchmarkConfiguration.destination.compareToIgnoreCase("local") == 0) {
             logger.info("Creating a local file with name : " + arrowFileName);
             File arrowFile = new File("./" + arrowFileName);
             FileOutputStream fileOutputStream = new FileOutputStream(arrowFile);
-            this.arrowFileWriter = new ArrowFileWriter(this.arrowVectorSchemaRoot,
-                    provider,
-                    fileOutputStream.getChannel());
+            this.wchannel = fileOutputStream.getChannel();
         } else if(BenchmarkConfiguration.destination.compareToIgnoreCase("hdfs") == 0){
             /* use HDFS files */
+            Path arrowPath = new Path(arrowOutputDirectory);
+            String arrowFullPath = arrowPath.toUri().toString() + "/" + arrowFileName;
             logger.info("Creating an HDFS file with name : " + arrowFullPath);
             // create the file stream on HDFS
             Path path = new Path(arrowFullPath);
             FileSystem fs = FileSystem.get(path.toUri(), conf);
             FSDataOutputStream file = fs.create(new Path(path.toUri().getRawPath()));
-            this.arrowFileWriter = new ArrowFileWriter(this.arrowVectorSchemaRoot,
-                    provider,
-                    new HDFSWritableByteChannel(file));
+            this.wchannel = new HDFSWritableByteChannel(file);
         } else if(BenchmarkConfiguration.destination.compareToIgnoreCase("crail") == 0) {
             throw new NotImplementedException();
         }

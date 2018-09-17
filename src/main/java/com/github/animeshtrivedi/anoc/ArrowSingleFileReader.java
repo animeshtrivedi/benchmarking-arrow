@@ -28,6 +28,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 import java.io.IOException;
+import java.nio.channels.SeekableByteChannel;
 import java.util.List;
 
 public class ArrowSingleFileReader extends BenchmarkResults {
@@ -35,6 +36,7 @@ public class ArrowSingleFileReader extends BenchmarkResults {
     private VectorSchemaRoot root;
     private List<ArrowBlock> arrowBlocks;
     private List<FieldVector> fieldVector;
+    private SeekableByteChannel rchannel;
 
     public void init(String fileName) throws Exception {
         Configuration conf = new Configuration();
@@ -42,8 +44,17 @@ public class ArrowSingleFileReader extends BenchmarkResults {
         FileSystem fileSystem = path.getFileSystem(conf);
         FSDataInputStream instream = fileSystem.open(path);
         FileStatus status = fileSystem.getFileStatus(path);
-        HDFSSeekableByteChannel arrowInputStream = new HDFSSeekableByteChannel(instream, status.getLen());
-        this.arrowFileReader = new ArrowFileReader(new SeekableReadChannel(arrowInputStream),
+        this.rchannel = new HDFSSeekableByteChannel(instream, status.getLen());
+        _init();
+    }
+
+    public void init(SeekableByteChannel rchannel) throws Exception {
+        this.rchannel = rchannel;
+        _init();
+    }
+
+    private void _init() throws Exception {
+        this.arrowFileReader = new ArrowFileReader(new SeekableReadChannel(this.rchannel),
                 new RootAllocator(Integer.MAX_VALUE));
         this.root = arrowFileReader.getVectorSchemaRoot();
         this.arrowBlocks = arrowFileReader.getRecordBlocks();
