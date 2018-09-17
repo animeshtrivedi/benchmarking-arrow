@@ -23,14 +23,14 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 
-public class HdfsSeekableByteChannel implements SeekableByteChannel {
+public class HDFSSeekableByteChannel implements SeekableByteChannel {
 
     private FSDataInputStream instream;
     private long fileSize;
     private long truncatedSize;
     private boolean isOpen;
 
-    public HdfsSeekableByteChannel(FSDataInputStream instream, long fileSize){
+    public HDFSSeekableByteChannel(FSDataInputStream instream, long fileSize){
         this.instream = instream;
         this.fileSize = fileSize;
         this.truncatedSize = fileSize;

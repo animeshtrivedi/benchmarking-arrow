@@ -42,7 +42,7 @@ public class ArrowSingleFileReader extends BenchmarkResults {
         FileSystem fileSystem = path.getFileSystem(conf);
         FSDataInputStream instream = fileSystem.open(path);
         FileStatus status = fileSystem.getFileStatus(path);
-        HdfsSeekableByteChannel arrowInputStream = new HdfsSeekableByteChannel(instream, status.getLen());
+        HDFSSeekableByteChannel arrowInputStream = new HDFSSeekableByteChannel(instream, status.getLen());
         this.arrowFileReader = new ArrowFileReader(new SeekableReadChannel(arrowInputStream),
                 new RootAllocator(Integer.MAX_VALUE));
         this.root = arrowFileReader.getVectorSchemaRoot();
