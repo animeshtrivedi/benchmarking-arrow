@@ -71,7 +71,7 @@ public class HdfsSeekableByteChannel implements SeekableByteChannel {
     @Override
     final public SeekableByteChannel truncate(long size) throws IOException {
         this.truncatedSize = size;
-        return null;
+        return this;
     }
 
     @Override
