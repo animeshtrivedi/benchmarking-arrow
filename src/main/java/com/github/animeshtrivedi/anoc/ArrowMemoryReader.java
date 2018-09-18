@@ -18,20 +18,29 @@ package com.github.animeshtrivedi.anoc;
 
 public class ArrowMemoryReader extends BenchmarkResults {
     ArrowSingleFileReader rx;
+    ParquetToArrow pqa;
+    MemoryIOChannel cx;
 
     void setInputOutput(String inputParquetFileName) throws Exception {
-        MemoryIOChannel cx = new MemoryIOChannel();
-        ParquetToArrow pqa = new ParquetToArrow();
+        this.cx = new MemoryIOChannel();
+        this.pqa = new ParquetToArrow();
         pqa.setInputOutput(inputParquetFileName, cx);
-        pqa.run();
+        pqa.start();
         rx = new ArrowSingleFileReader();
-        rx.init(cx);
+    }
+
+    public void finishInit() throws Exception {
+        try {
+            pqa.join();
+            rx.init(cx);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void run() {
         rx.run();
     }
-
 
     long totalInts(){
         return rx.totalInts();

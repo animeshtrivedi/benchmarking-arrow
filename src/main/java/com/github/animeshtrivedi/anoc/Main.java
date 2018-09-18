@@ -52,9 +52,13 @@ public class Main {
                     temp.setInputOutput(list[i]._1());
                     results[i] = temp;
                 }
+                for(int i =0; i < BenchmarkConfiguration.parallel; i++){
+                    ((ArrowMemoryReader) results[i]).finishInit();
+                }
             } else {
                 throw new Exception("Illegal test name: " + BenchmarkConfiguration.testName);
             }
+            System.out.println("Test prep finished, starting the execution now ...");
             long start = System.nanoTime();
             for(int i =0; i < BenchmarkConfiguration.parallel; i++){
                 results[i].start();
