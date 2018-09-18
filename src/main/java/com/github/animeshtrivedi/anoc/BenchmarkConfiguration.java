@@ -18,7 +18,9 @@ package com.github.animeshtrivedi.anoc;
 
 public class BenchmarkConfiguration {
     // 1 MB writing buffer size
-    static int writeBufferSize = 1024 * 1024;
+    static int writeBufferSizeShift = 20;
+    static int writeBufferSize = 1 << BenchmarkConfiguration.writeBufferSizeShift;
+
     // write to a Crail, HDFS or local file system?
     static String[] validDestinations ={"hdfs", "crail", "local"};
     static String destination = "hdfs";
@@ -33,4 +35,14 @@ public class BenchmarkConfiguration {
 
     // number of parallel instances
     static int parallel = 1;
+
+    static void setWriteBufferSize(int newSize){
+        BenchmarkConfiguration.writeBufferSizeShift = (int) Math.ceil(Math.log(newSize)/Math.log(2));
+        BenchmarkConfiguration.writeBufferSize = 1 << BenchmarkConfiguration.writeBufferSizeShift;
+    }
+
+    static void setWriteBufferShift(int shift){
+        BenchmarkConfiguration.writeBufferSizeShift = shift;
+        BenchmarkConfiguration.writeBufferSize = 1 << BenchmarkConfiguration.writeBufferSizeShift;
+    }
 }

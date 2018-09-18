@@ -61,7 +61,11 @@ public class ParseOptions {
                 BenchmarkConfiguration.destination = cmd.getOptionValue("d").trim();
             }
             if (cmd.hasOption("w")) {
-                BenchmarkConfiguration.writeBufferSize = Integer.parseInt(cmd.getOptionValue("w").trim());
+                long sz = Integer.parseInt(cmd.getOptionValue("w").trim());
+                if((sz & (sz -1)) != 0){
+                    throw new ParseException(" please set the buffer size to the power of two.");
+                }
+                BenchmarkConfiguration.setWriteBufferSize((int) sz);
             }
             if (cmd.hasOption("p")) {
                 BenchmarkConfiguration.parallel = Integer.parseInt(cmd.getOptionValue("p").trim());
