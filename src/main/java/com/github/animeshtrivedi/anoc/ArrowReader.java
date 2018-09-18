@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.nio.channels.SeekableByteChannel;
 import java.util.List;
 
-public class ArrowSingleFileReader extends BenchmarkResults {
+public class ArrowReader extends BenchmarkResults {
     private ArrowFileReader arrowFileReader;
     private VectorSchemaRoot root;
     private List<ArrowBlock> arrowBlocks;

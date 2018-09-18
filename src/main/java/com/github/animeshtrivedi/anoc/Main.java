@@ -42,7 +42,7 @@ public class Main {
                 }
             } else if (BenchmarkConfiguration.testName.compareToIgnoreCase("ArrowRead") == 0) {
                 for(int i =0; i < BenchmarkConfiguration.parallel; i++) {
-                    ArrowSingleFileReader temp = new ArrowSingleFileReader();
+                    ArrowReader temp = new ArrowReader();
                     temp.init(list[i]._1());
                     results[i] = temp;
                 }

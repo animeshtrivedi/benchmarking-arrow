@@ -28,7 +28,7 @@ public class MemoryIOChannel implements WritableByteChannel, SeekableByteChannel
     private long wSize;
     private long  rMax;
     private int arrIndex, byteArrayOffset;
-    ArrayList<byte[]> dataArray;
+    private ArrayList<byte[]> dataArray;
     private final int size, shift;
 
     public MemoryIOChannel(){

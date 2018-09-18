@@ -17,16 +17,16 @@
 package com.github.animeshtrivedi.anoc;
 
 public class ArrowMemoryReader extends BenchmarkResults {
-    ArrowSingleFileReader rx;
-    ParquetToArrow pqa;
-    MemoryIOChannel cx;
+    private ArrowReader rx;
+    private ParquetToArrow pqa;
+    private MemoryIOChannel cx;
 
     void setInputOutput(String inputParquetFileName) throws Exception {
         this.cx = new MemoryIOChannel();
         this.pqa = new ParquetToArrow();
         pqa.setInputOutput(inputParquetFileName, cx);
         pqa.start();
-        rx = new ArrowSingleFileReader();
+        rx = new ArrowReader();
     }
 
     public void finishInit() throws Exception {
