@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.github.animeshtrivedi.anoc;
+package com.github.animeshtrivedi.benchmark;
 
 import org.apache.hadoop.fs.FSDataInputStream;
 

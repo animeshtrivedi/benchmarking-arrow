@@ -14,8 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.animeshtrivedi.anoc;
+package com.github.animeshtrivedi.benchmark
 
-public class CrailSeekableByteChannel {
-    //NYI
+/**
+ * @author ${user.name}
+ */
+class ScalaMain {
+   println( "Hello World!" )
+}
+
+object ScalaMain {
+   val name = "Hello World!"
 }

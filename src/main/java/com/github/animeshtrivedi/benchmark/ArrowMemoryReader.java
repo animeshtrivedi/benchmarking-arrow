@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.animeshtrivedi.anoc;
+package com.github.animeshtrivedi.benchmark;
 
 public class ArrowMemoryReader extends BenchmarkResults {
     private ArrowReader rx;

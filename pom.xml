@@ -4,7 +4,7 @@
   <artifactId>benchmark-arrow</artifactId>
   <version>1.0</version>
   <name>${project.artifactId}</name>
-	<description>Arrow/Java on Crail (AonC) benchmarking</description>
+	<description>Arrow/Java benchmarking</description>
   <inceptionYear>2018</inceptionYear>
 
   <licenses>
@@ -163,7 +163,7 @@
             <manifest>
               <addClasspath>true</addClasspath>
               <classpathPrefix>lib/</classpathPrefix>
-              <mainClass>com.github.animeshtrivedi.anoc.ScalaMain</mainClass>
+              <mainClass>com.github.animeshtrivedi.benchmark.ScalaMain</mainClass>
             </manifest>
           </archive>
         </configuration>
