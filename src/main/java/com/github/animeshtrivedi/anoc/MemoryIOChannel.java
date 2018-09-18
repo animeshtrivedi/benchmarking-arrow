@@ -26,63 +26,88 @@ public class MemoryIOChannel implements WritableByteChannel, SeekableByteChannel
 
     private Boolean isOpen;
     private long wSize;
-    private long  rMax, rBaseOffset;
-    private int rIndex, currByteBufferOffset;
-    ArrayList<ByteBuffer> dataArray;
+    private long  rMax;
+    private int arrIndex, byteArrayOffset;
+    ArrayList<byte[]> dataArray;
+    private final int size, shift;
 
     public MemoryIOChannel(){
         isOpen = true;
         wSize = 0 ;
-        rBaseOffset = 0;
-        rIndex = 0;
-        currByteBufferOffset = 0;
+        arrIndex = 0;
+        byteArrayOffset = 0;
         dataArray = new ArrayList<>();
+        shift = 20;
+        size = 1 << shift; // 1MB
+        dataArray.add(new byte[size]);
     }
 
     @Override
     public int read(ByteBuffer dst) throws IOException {
-        ByteBuffer buf = dataArray.get(rIndex);
-        int readBytesBB = buf.remaining();
-        if(readBytesBB == 0 && rBaseOffset < rMax){
-            if((rIndex + 1) == dataArray.size()){
-                // end of the stream
-                return 0;
-            } else{
-                rBaseOffset+=buf.capacity();
-                currByteBufferOffset = 0;
-                rIndex++;
-
+        int originalReadTarget = dst.remaining();
+        int readTarget = originalReadTarget;
+        while (readTarget > 0 && arrIndex < dataArray.size()){
+            int available = (size - byteArrayOffset);
+            int toRead = Math.min(readTarget, available);
+            dst.put(dataArray.get(arrIndex), byteArrayOffset, toRead);
+            byteArrayOffset+=toRead;
+            readTarget-=toRead;
+            if(byteArrayOffset == size){
+                // new to move the index
+                arrIndex++;
+                byteArrayOffset=0;
             }
         }
-        int toRead = Math.min(dst.remaining(), readBytesBB);
-        // a byte buffer ready to read
-        dst.put(buf.array(), currByteBufferOffset, toRead);
-        currByteBufferOffset+=toRead;
-        buf.position(currByteBufferOffset);
-        return toRead;
+        return originalReadTarget - readTarget;
     }
 
     @Override
     public int write(ByteBuffer src) throws IOException {
-        int remaining = src.remaining();
-        ByteBuffer item = ByteBuffer.allocate(remaining);
-        item.put(src);
-        item.clear();
-        dataArray.add(item);
-        // this should be remaining from the original
-        wSize+=item.capacity();
-        rMax=wSize;
-        return remaining;
+        // there is a BUG in the Arrow contract, so we need to push all here
+        int dataAvailable = src.remaining();
+        while (src.remaining() > 0){
+            wSize+=_writeOne(src);
+        }
+        return dataAvailable;
+    }
+
+    private int _writeOne(ByteBuffer src) throws IOException {
+        int dataAvailable = src.remaining();
+        // step 1, check if we have enough space
+        if((byteArrayOffset + dataAvailable) > size){
+            // copy a part here and then copy later
+            int toCopy = size - byteArrayOffset;
+            src.get(dataArray.get(arrIndex), byteArrayOffset, toCopy);
+            // add a new entry
+            dataArray.add(new byte[size]);
+            // then move indexes
+            byteArrayOffset=0;
+            arrIndex++;
+        }
+
+        int toCopy = Math.min(src.remaining(), size - byteArrayOffset);
+        src.get(dataArray.get(arrIndex), byteArrayOffset, toCopy);
+        byteArrayOffset+=toCopy;
+        return dataAvailable - src.remaining();
+    }
+
+    private void show(String debug){
+        System.err.println("arrIndex " + arrIndex + " offset " + byteArrayOffset + " size " + size + " shift " + shift + " | debug " + debug);
     }
 
     @Override
     public long position() throws IOException {
-        return rBaseOffset + currByteBufferOffset;
+        return (arrIndex << shift) + byteArrayOffset;
     }
 
     @Override
     public SeekableByteChannel position(long newPosition) throws IOException {
-        throw new IOException(" NYI rMax: " + rMax + " newPosition " + newPosition);
+        if (newPosition > rMax)
+            throw new IOException(" NYI rMax: " + rMax + " newPosition " + newPosition);
+
+        this.arrIndex = (int) (newPosition >> shift);
+        this.byteArrayOffset = (int) (newPosition - (((long)this.arrIndex) << shift));
+        return this;
     }
 
     @Override
@@ -103,5 +128,8 @@ public class MemoryIOChannel implements WritableByteChannel, SeekableByteChannel
     @Override
     public void close() throws IOException {
         isOpen = false;
+        rMax=wSize;
+        this.arrIndex = 0;
+        this.byteArrayOffset = 0;
     }
 }
