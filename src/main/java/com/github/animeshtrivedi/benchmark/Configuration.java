@@ -16,10 +16,10 @@
  */
 package com.github.animeshtrivedi.benchmark;
 
-public class BenchmarkConfiguration {
+public class Configuration {
     // 1 MB writing buffer size
     static int writeBufferSizeShift = 20;
-    static int writeBufferSize = 1 << BenchmarkConfiguration.writeBufferSizeShift;
+    static int writeBufferSize = 1 << Configuration.writeBufferSizeShift;
 
     // write to a Crail, HDFS or local file system?
     static String[] validDestinations ={"hdfs", "crail", "local"};
@@ -27,8 +27,7 @@ public class BenchmarkConfiguration {
     // max fixed-size byte array width
     static int maxByteWidth = 8;
     // which test to do
-    static String[] validTests ={"parquetToArrow", "arrowRead"};
-    static String testName = "parquetToArrow";
+    static String testName = "datagen";
     // input
     static String inputDir = null;
     static String outputDir = null;
@@ -37,12 +36,19 @@ public class BenchmarkConfiguration {
     static int parallel = 1;
 
     static void setWriteBufferSize(int newSize){
-        BenchmarkConfiguration.writeBufferSizeShift = (int) Math.ceil(Math.log(newSize)/Math.log(2));
-        BenchmarkConfiguration.writeBufferSize = 1 << BenchmarkConfiguration.writeBufferSizeShift;
+        Configuration.writeBufferSizeShift = (int) Math.ceil(Math.log(newSize)/Math.log(2));
+        Configuration.writeBufferSize = 1 << Configuration.writeBufferSizeShift;
     }
 
     static void setWriteBufferShift(int shift){
-        BenchmarkConfiguration.writeBufferSizeShift = shift;
-        BenchmarkConfiguration.writeBufferSize = 1 << BenchmarkConfiguration.writeBufferSizeShift;
+        Configuration.writeBufferSizeShift = shift;
+        Configuration.writeBufferSize = 1 << Configuration.writeBufferSizeShift;
     }
+
+    // data gen settings
+    public static String type = "binary";
+    public static int numCols = 1;
+    public static long rowsPerThread = 1000;
+    public static int binSize = 1024;
+    public static int stepping = 1000;
 }
