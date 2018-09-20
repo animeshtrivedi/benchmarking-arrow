@@ -32,6 +32,13 @@ public class ParseOptions {
         options.addOption("d", "destination", true, "output destination: hdfs, crail, or local.");
         options.addOption("w", "writeBufferSize", true, "write buffer size, default: 1MB");
         options.addOption("p", "parallel", true, "number of parallel instances");
+
+        options.addOption("r", "rows", true, "rows per parallel worker");
+        options.addOption("s", "size", true, "size for binary payload");
+        options.addOption("n", "name", true, "int, or binary");
+        options.addOption("c", "nulCols", true, "number of columns");
+        options.addOption("g", "groupSize", true, "row group size in Arrow");
+
     }
 
     public void show_help() {
@@ -49,26 +56,42 @@ public class ParseOptions {
                 System.exit(0);
             }
             if (cmd.hasOption("t")) {
-                BenchmarkConfiguration.testName = cmd.getOptionValue("t").trim();
+                Configuration.testName = cmd.getOptionValue("t").trim();
             }
             if (cmd.hasOption("i")) {
-                BenchmarkConfiguration.inputDir = cmd.getOptionValue("i").trim();
+                Configuration.inputDir = cmd.getOptionValue("i").trim();
             }
             if (cmd.hasOption("o")) {
-                BenchmarkConfiguration.outputDir = cmd.getOptionValue("o").trim();
+                Configuration.outputDir = cmd.getOptionValue("o").trim();
             }
             if (cmd.hasOption("d")) {
-                BenchmarkConfiguration.destination = cmd.getOptionValue("d").trim();
+                Configuration.destination = cmd.getOptionValue("d").trim();
             }
             if (cmd.hasOption("w")) {
                 long sz = Integer.parseInt(cmd.getOptionValue("w").trim());
                 if((sz & (sz -1)) != 0){
                     throw new ParseException(" please set the buffer size to the power of two.");
                 }
-                BenchmarkConfiguration.setWriteBufferSize((int) sz);
+                Configuration.setWriteBufferSize((int) sz);
             }
             if (cmd.hasOption("p")) {
-                BenchmarkConfiguration.parallel = Integer.parseInt(cmd.getOptionValue("p").trim());
+                Configuration.parallel = Integer.parseInt(cmd.getOptionValue("p").trim());
+            }
+
+            if (cmd.hasOption("r")) {
+                Configuration.rowsPerThread = Long.parseLong(cmd.getOptionValue("r").trim());
+            }
+            if (cmd.hasOption("s")) {
+                Configuration.binSize = Integer.parseInt(cmd.getOptionValue("s").trim());
+            }
+            if (cmd.hasOption("n")) {
+                Configuration.type = cmd.getOptionValue("n").trim();
+            }
+            if (cmd.hasOption("c")) {
+                Configuration.numCols = Integer.parseInt(cmd.getOptionValue("c").trim());
+            }
+            if (cmd.hasOption("g")) {
+                Configuration.stepping = Integer.parseInt(cmd.getOptionValue("g").trim());
             }
 
         } catch (ParseException e) {
