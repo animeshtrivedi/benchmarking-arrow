@@ -37,8 +37,8 @@ public class MemoryIOChannel implements WritableByteChannel, SeekableByteChannel
         arrIndex = 0;
         byteArrayOffset = 0;
         dataArray = new ArrayList<>();
-        shift = BenchmarkConfiguration.writeBufferSizeShift;
-        size = BenchmarkConfiguration.writeBufferSize;
+        shift = Configuration.writeBufferSizeShift;
+        size = Configuration.writeBufferSize;
         dataArray.add(new byte[size]);
     }
 

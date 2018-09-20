@@ -17,6 +17,8 @@
 package com.github.animeshtrivedi.benchmark;
 
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -28,10 +30,17 @@ public class HDFSWritableByteChannel implements WritableByteChannel {
     private Boolean isOpen;
     private byte[] tempBuffer;
 
-    public HDFSWritableByteChannel(FSDataOutputStream outStream){
-        this.outStream = outStream;
+    public HDFSWritableByteChannel(String fullPath){
         this.isOpen = true;
-        this.tempBuffer = new byte[BenchmarkConfiguration.writeBufferSize];
+        this.tempBuffer = new byte[Configuration.writeBufferSize];
+        try {
+            Path path = new Path(fullPath);
+            org.apache.hadoop.conf.Configuration hadoopConf = new org.apache.hadoop.conf.Configuration();
+            FileSystem hadoopFS = FileSystem.get(path.toUri(), hadoopConf);
+            this.outStream = hadoopFS.create(new Path(path.toUri().getRawPath()));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private int writeDirectBuffer(ByteBuffer src) throws IOException {

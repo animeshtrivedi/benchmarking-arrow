@@ -26,9 +26,6 @@ import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.FieldType;
 import org.apache.arrow.vector.types.pojo.Schema;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 import org.apache.parquet.column.ColumnDescriptor;
@@ -54,7 +51,7 @@ import java.util.List;
 public class ParquetToArrow extends BenchmarkResults {
     final static Logger logger = Logger.getLogger(ParquetToArrow.class);
     // parquet objects
-    private Configuration conf;
+    private org.apache.hadoop.conf.Configuration conf;
     private MessageType parquetSchema;
     private ParquetFileReader parquetFileReader;
     private ParquetMetadata parquetFooter;
@@ -69,7 +66,6 @@ public class ParquetToArrow extends BenchmarkResults {
     private WritableByteChannel wchannel;
 
     private class DumpConverter extends PrimitiveConverter {
-        DumpGroupConverter asGroupConverter = new DumpGroupConverter();
     }
 
     private class DumpGroupConverter extends GroupConverter {
@@ -88,7 +84,7 @@ public class ParquetToArrow extends BenchmarkResults {
     }
 
     public ParquetToArrow(){
-        this.conf = new Configuration();
+        this.conf = new org.apache.hadoop.conf.Configuration();
         // TODO:
         // (i) what does this mean to set it to Integer.MAX_VALUE
         // (ii) what other options are there for RootAllocator
@@ -184,7 +180,7 @@ public class ParquetToArrow extends BenchmarkResults {
                     break;
                 case FIXED_LEN_BYTE_ARRAY:
                     childrenBuilder.add(new Field(sb.toString(),
-                            FieldType.nullable(new ArrowType.FixedSizeBinary(BenchmarkConfiguration.maxByteWidth)), null));
+                            FieldType.nullable(new ArrowType.FixedSizeBinary(Configuration.maxByteWidth)), null));
                     break;
                 default : throw new Exception(" NYI " + col.getType());
             }
@@ -194,22 +190,18 @@ public class ParquetToArrow extends BenchmarkResults {
     }
 
     private void setOutputChannel(String arrowFileName, String arrowOutputDirectory) throws Exception {
-        if(BenchmarkConfiguration.destination.compareToIgnoreCase("local") == 0) {
+        if(Configuration.destination.compareToIgnoreCase("local") == 0) {
             logger.info("Creating a local file with name : " + arrowFileName);
             File arrowFile = new File("./" + arrowFileName);
             FileOutputStream fileOutputStream = new FileOutputStream(arrowFile);
             this.wchannel = fileOutputStream.getChannel();
-        } else if(BenchmarkConfiguration.destination.compareToIgnoreCase("hdfs") == 0){
+        } else if(Configuration.destination.compareToIgnoreCase("hdfs") == 0){
             /* use HDFS files */
             Path arrowPath = new Path(arrowOutputDirectory);
             String arrowFullPath = arrowPath.toUri().toString() + "/" + arrowFileName;
             logger.info("Creating an HDFS file with name : " + arrowFullPath);
-            // create the file stream on HDFS
-            Path path = new Path(arrowFullPath);
-            FileSystem fs = FileSystem.get(path.toUri(), conf);
-            FSDataOutputStream file = fs.create(new Path(path.toUri().getRawPath()));
-            this.wchannel = new HDFSWritableByteChannel(file);
-        } else if(BenchmarkConfiguration.destination.compareToIgnoreCase("crail") == 0) {
+            this.wchannel = new HDFSWritableByteChannel(arrowFullPath);
+        } else if(Configuration.destination.compareToIgnoreCase("crail") == 0) {
             throw new NotImplementedException();
         }
     }

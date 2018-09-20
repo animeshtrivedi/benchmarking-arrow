@@ -16,7 +16,6 @@
  */
 package com.github.animeshtrivedi.benchmark
 
-import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileStatus, Path}
 
 /**

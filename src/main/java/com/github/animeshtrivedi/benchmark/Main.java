@@ -16,11 +16,13 @@
  */
 package com.github.animeshtrivedi.benchmark;
 
+import com.github.animeshtrivedi.generator.BinaryGenerator;
 import org.apache.log4j.Logger;
 import scala.Tuple2;
 
 public class Main {
     final static Logger logger = Logger.getLogger(Main.class);
+
     public static void main(String[] args) {
         System.out.println("Welcome to Parquet Benchmarking project");
         ParseOptions options = new ParseOptions();
@@ -28,52 +30,79 @@ public class Main {
         try {
             // step 1: enumerate all files which are there and take top "parallel" items
             Tuple2<String, Object>[] list =
-                    Utils.enumerateWithSize(BenchmarkConfiguration.inputDir);
-            if(list.length < BenchmarkConfiguration.parallel){
-                throw new Exception("Parallel request " + BenchmarkConfiguration.parallel +
+                    Utils.enumerateWithSize(Configuration.inputDir);
+            if (list.length < Configuration.parallel) {
+                throw new Exception("Parallel request " + Configuration.parallel +
                         " is more than the number of files " + list.length);
             }
-            BenchmarkResults[] results = new BenchmarkResults[BenchmarkConfiguration.parallel];
-            if(BenchmarkConfiguration.testName.compareToIgnoreCase("ParquetToArrow") == 0){
-                for(int i =0; i < BenchmarkConfiguration.parallel; i++) {
+            DataInterface[] ops = new DataInterface[Configuration.parallel];
+
+            if (Configuration.testName.compareToIgnoreCase("datagen") == 0) {
+                if (Configuration.type.compareToIgnoreCase("binary") == 0) {
+                    for (int i = 0; i < Configuration.parallel; i++) {
+                        HDFSWritableByteChannel w = new HDFSWritableByteChannel(Configuration.destination+i);
+                        BinaryGenerator temp = new BinaryGenerator(w);
+                        ops[i] = temp;
+                    }
+                } else if (Configuration.type.compareToIgnoreCase("int") == 0) {
+                    for (int i = 0; i < Configuration.parallel; i++) {
+                        HDFSWritableByteChannel w = new HDFSWritableByteChannel("/datagen/arrow/output"+i);
+                        BinaryGenerator temp = new BinaryGenerator(w);
+                        ops[i] = temp;
+                    }
+                } else {
+                    throw new Exception("datagen type " + Configuration.type + " not implemented");
+                }
+            } else if (Configuration.testName.compareToIgnoreCase("ParquetToArrow") == 0) {
+                for (int i = 0; i < Configuration.parallel; i++) {
                     ParquetToArrow temp = new ParquetToArrow();
-                    temp.setInputOutput(list[i]._1(), BenchmarkConfiguration.outputDir);
-                    results[i] = temp;
+                    temp.setInputOutput(list[i]._1(), Configuration.outputDir);
+                    ops[i] = temp;
                 }
-            } else if (BenchmarkConfiguration.testName.compareToIgnoreCase("ArrowRead") == 0) {
-                for(int i =0; i < BenchmarkConfiguration.parallel; i++) {
-                    ArrowReader temp = new ArrowReader();
+            } else if (Configuration.testName.compareToIgnoreCase("ArrowRead") == 0) {
+                for (int i = 0; i < Configuration.parallel; i++) {
+                    ArrowReaderDebug temp = new ArrowReaderDebug();
                     temp.init(list[i]._1());
-                    results[i] = temp;
+                    ops[i] = temp;
                 }
-            } else if (BenchmarkConfiguration.testName.compareToIgnoreCase("ArrowMemRead") == 0) {
-                for(int i =0; i < BenchmarkConfiguration.parallel; i++) {
-                    ArrowMemoryReader temp = new ArrowMemoryReader();
-                    temp.setInputOutput(list[i]._1());
-                    results[i] = temp;
+            } else if (Configuration.testName.compareToIgnoreCase("ArrowMemRead") == 0) {
+                ArrowMemoryReader tempArr[] = new ArrowMemoryReader[Configuration.parallel];
+                for (int i = 0; i < Configuration.parallel; i++) {
+                    tempArr[i] = new ArrowMemoryReader();
+                    tempArr[i].setInputOutput(list[i]._1());
                 }
-                for(int i =0; i < BenchmarkConfiguration.parallel; i++){
-                    ((ArrowMemoryReader) results[i]).finishInit();
+                for (int i = 0; i < Configuration.parallel; i++) {
+                    tempArr[i].finishInit();
+                    ops[i] = tempArr[i];
                 }
             } else {
-                throw new Exception("Illegal test name: " + BenchmarkConfiguration.testName);
+                throw new Exception("Illegal test name: " + Configuration.testName);
+            }
+
+            System.out.println("Allocating " + Configuration.parallel +" thread objects ");
+            Thread t[] = new Thread[Configuration.parallel];
+            for (int i = 0; i < Configuration.parallel; i++) {
+                t[i] = new Thread(ops[i]);
             }
             System.out.println("Test prep finished, starting the execution now ...");
             long start = System.nanoTime();
-            for(int i =0; i < BenchmarkConfiguration.parallel; i++){
-                results[i].start();
+            for (int i = 0; i < Configuration.parallel; i++) {
+                t[i].start();
             }
-            for(int i =0; i < BenchmarkConfiguration.parallel; i++){
-                results[i].join();
+            for (int i = 0; i < Configuration.parallel; i++) {
+                t[i].join();
             }
             long end = System.nanoTime();
 
             long totalBytes = 0;
-            for(int i =0; i < BenchmarkConfiguration.parallel; i++){
-                totalBytes+=results[i].getTotalBytesProcessed();;
-                System.out.println("\t ["+i+"] " + results[i].summary());
+            for (int i = 0; i < Configuration.parallel; i++) {
+                totalBytes += ops[i].getTotalBytesProcessed();
+                System.out.println("\t [" + i + "] " + ops[i].summary());
             }
-            String bandwidthGbps = String.format("%.2f", (((double)totalBytes * 8) / (end - start)));
+            if (totalBytes == 0)
+                totalBytes = BenchmarkDebugConfiguration.F100StoreSalesSizeByte;
+
+            String bandwidthGbps = String.format("%.2f", (((double) totalBytes * 8) / (end - start)));
             System.out.println("-----------------------------------------------------------------------");
             System.out.println("Total bytes: " + totalBytes + "(" + Utils.sizeToSizeStr2(totalBytes) + ") bandwidth " + bandwidthGbps + " Gbps");
             System.out.println("-----------------------------------------------------------------------");

@@ -23,6 +23,7 @@ import org.apache.arrow.vector.types.Types;
 import java.nio.channels.WritableByteChannel;
 
 public class IntegerGenerator extends ArrowDataGenerator {
+    int totalInts;
 
     public IntegerGenerator(WritableByteChannel channel) {
         super(channel);
@@ -31,6 +32,7 @@ public class IntegerGenerator extends ArrowDataGenerator {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        this.totalInts = 0;
     }
 
     @Override
@@ -39,5 +41,51 @@ public class IntegerGenerator extends ArrowDataGenerator {
         for (int i = 0; i < count; i++) {
          intVector.setSafe(i, 1, 42);
         }
+        this.totalInts+=count;
+    }
+
+    @Override
+    public long totalInts() {
+        return this.totalInts;
+    }
+
+    @Override
+    public long totalLongs() {
+        return 0;
+    }
+
+    @Override
+    public long totalFloat8() {
+        return 0;
+    }
+
+    @Override
+    public long totalFloat4() {
+        return 0;
+    }
+
+    @Override
+    public long totalBinary() {
+        return 0;
+    }
+
+    @Override
+    public long totalBinarySize() {
+        return 0;
+    }
+
+    @Override
+    public long totalRows() {
+        return 0;
+    }
+
+    @Override
+    public double getChecksum() {
+        return 0;
+    }
+
+    @Override
+    public long getRunTimeinNS() {
+        return 0;
     }
 }

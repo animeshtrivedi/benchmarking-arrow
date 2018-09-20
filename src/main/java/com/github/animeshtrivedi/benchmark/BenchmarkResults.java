@@ -16,7 +16,7 @@
  */
 package com.github.animeshtrivedi.benchmark;
 
-abstract public class BenchmarkResults extends Thread {
+abstract public class BenchmarkResults implements DataInterface {
     protected BenchmarkResults(){
         this.longCount = 0;
         this.intCount = 0;
@@ -38,30 +38,30 @@ abstract public class BenchmarkResults extends Thread {
     protected long totalRows;
     protected long runtimeInNS;
 
-    long totalInts(){
+    public long totalInts(){
         return intCount;
     }
 
-    long totalLongs(){
+    public long totalLongs(){
         return longCount;
     }
 
-    long totalFloat8(){
+    public long totalFloat8(){
         return float8Count;
     }
 
-    long totalFloat4() {
+    public long totalFloat4() {
         return float4Count;
     }
-    long totalBinary(){
+    public long totalBinary(){
         return binaryCount;
     }
 
-    long totalBinarySize() {
+    public long totalBinarySize() {
         return binarySizeCount;
     }
 
-    long totalRows(){
+    public long totalRows(){
         return totalRows;
     }
 
@@ -69,42 +69,7 @@ abstract public class BenchmarkResults extends Thread {
         return this.checksum;
     }
 
-    long getRunTimeinNS() {
+    public long getRunTimeinNS() {
         return this.runtimeInNS;
-    }
-
-    long getTotalBytesProcessed(){
-        long size = 0;
-        size+= totalInts() * Integer.BYTES;
-        size+= totalLongs() * Long.BYTES;
-        size+= totalFloat4() * Float.BYTES;
-        size+=totalFloat8() * Double.BYTES;
-        size+=totalBinarySize();
-        return size;
-    }
-
-    String getBandwidthGbps(){
-        long time = getRunTimeinNS();
-        if(time > 0) {
-            double bw = getTotalBytesProcessed();
-            bw*=8;
-            bw/=time;
-            return String.format("%.2f", bw);
-        } else{
-            return "NaN";
-        }
-    }
-
-    String summary(){
-        return "totalRows: " + totalRows() +
-                " || ints: " + totalInts() +
-                " , long " + totalLongs() +
-                " , float4 " + totalFloat4() +
-                " , double " + totalFloat8() +
-                " , binary " + totalBinary() +
-                " binarySize " + totalBinarySize() +
-                " || runtimeInNS " + getRunTimeinNS() +
-                " , totalBytesProcessed " + getTotalBytesProcessed() +
-                " , bandwidth " + getBandwidthGbps() + " Gbps.";
     }
 }

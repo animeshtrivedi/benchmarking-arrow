@@ -17,21 +17,24 @@
 package com.github.animeshtrivedi.benchmark;
 
 public class ArrowMemoryReader extends BenchmarkResults {
-    private ArrowReader rx;
+    private ArrowReaderDebug rx;
     private ParquetToArrow pqa;
     private MemoryIOChannel cx;
+    private Thread tx;
+
 
     void setInputOutput(String inputParquetFileName) throws Exception {
         this.cx = new MemoryIOChannel();
         this.pqa = new ParquetToArrow();
         pqa.setInputOutput(inputParquetFileName, cx);
-        pqa.start();
-        rx = new ArrowReader();
+        this.tx = new Thread(pqa);
+        this.tx.start();
+        rx = new ArrowReaderDebug();
     }
 
     public void finishInit() throws Exception {
         try {
-            pqa.join();
+            this.tx.join();
             rx.init(cx);
         } catch (Exception e) {
             e.printStackTrace();
@@ -42,30 +45,30 @@ public class ArrowMemoryReader extends BenchmarkResults {
         rx.run();
     }
 
-    long totalInts(){
+    public long totalInts(){
         return rx.totalInts();
     }
 
-    long totalLongs(){
+    public long totalLongs(){
         return rx.totalLongs();
     }
 
-    long totalFloat8(){
+    public long totalFloat8(){
         return rx.totalFloat8();
     }
 
-    long totalFloat4() {
+    public long totalFloat4() {
         return rx.totalFloat4();
     }
-    long totalBinary(){
+    public long totalBinary(){
         return rx.totalBinary();
     }
 
-    long totalBinarySize() {
+    public long totalBinarySize() {
         return rx.totalBinarySize();
     }
 
-    long totalRows(){
+    public long totalRows(){
         return rx.totalRows();
     }
 
@@ -73,7 +76,7 @@ public class ArrowMemoryReader extends BenchmarkResults {
         return rx.getChecksum();
     }
 
-    long getRunTimeinNS() {
+    public long getRunTimeinNS() {
         return rx.getRunTimeinNS();
     }
 }

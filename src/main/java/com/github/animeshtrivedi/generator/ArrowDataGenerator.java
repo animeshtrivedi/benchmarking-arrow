@@ -17,10 +17,10 @@
 package com.github.animeshtrivedi.generator;
 
 import com.github.animeshtrivedi.benchmark.Configuration;
+import com.github.animeshtrivedi.benchmark.DataInterface;
 import com.google.common.collect.ImmutableList;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.FieldVector;
-import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.ipc.ArrowFileWriter;
 import org.apache.arrow.vector.types.FloatingPointPrecision;
@@ -33,7 +33,7 @@ import org.apache.arrow.vector.types.pojo.Schema;
 import java.nio.channels.WritableByteChannel;
 import java.util.List;
 
-public abstract class ArrowDataGenerator extends Thread {
+public abstract class ArrowDataGenerator implements DataInterface {
     protected WritableByteChannel channel;
     protected long rows;
     protected int columns;

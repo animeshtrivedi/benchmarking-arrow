@@ -58,9 +58,97 @@ public class ArrowReaderDebug extends BenchmarkResults {
     private void _init() throws Exception {
         this.arrowFileReader = new ArrowFileReader(new SeekableReadChannel(this.rchannel),
                 new RootAllocator(Integer.MAX_VALUE));
+        // this will call ensureInitialized the first time you call it
         this.root = arrowFileReader.getVectorSchemaRoot();
+
         this.arrowBlocks = arrowFileReader.getRecordBlocks();
         this.fieldVector = root.getFieldVectors();
+    }
+
+    public void run2() {
+        try {
+            Long s2 = System.nanoTime();
+            // TODO: what is this size?
+            int size = arrowBlocks.size();
+            System.err.println("Number of arrow block are : " + size + " who sets these?");
+            // this seems to come from parquet block size ~128MB
+            for (int i = 0; i < size; i++) {
+                ArrowBlock rbBlock = arrowBlocks.get(i);
+                if (!arrowFileReader.loadRecordBatch(rbBlock)) {
+                    throw new IOException("Expected to read record batch");
+                }
+                this.totalRows += root.getRowCount();
+                System.err.println("\t arrow row count is " + root.getRowCount());
+                /* read all the fields */
+                int numCols = fieldVector.size();
+                for (int j = 0; j < numCols; j++) {
+                    FieldVector fv = fieldVector.get(j);
+                    switch (fv.getMinorType()) {
+                        case INT:
+                            holderConsumeInt42(fv);
+                            break;
+                        case BIGINT:
+                            holderConsumeBigInt2(fv);
+                            break;
+                        case FLOAT4:
+                            holderConsumeFloat42(fv);
+                            break;
+                        case FLOAT8:
+                            holderConsumeFloat82(fv);
+                            break;
+                        case VARBINARY:
+                            holderConsumeBinary2(fv);
+                            break;
+                        default:
+                            throw new Exception("Unknown minor type: " + fv.getMinorType());
+                    }
+                }
+            }
+            long s3 = System.nanoTime();
+            this.runtimeInNS = s3 - s2;
+            arrowFileReader.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void run() {
+        try {
+            Long s2 = System.nanoTime();
+            mode2();
+            long s3 = System.nanoTime();
+            this.runtimeInNS = s3 - s2;
+            System.err.println("\t -> bytes read " + this.arrowFileReader.bytesRead());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void mode1() {
+        try {
+            // when looping like this, this only loads one batch and w/o setting any row count
+            while(!arrowFileReader.loadNextBatch()){
+                this.totalRows += root.getRowCount();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    protected void mode2(){
+        int size = arrowBlocks.size();
+        for (int i = 0; i < size; i++) {
+            ArrowBlock rbBlock = arrowBlocks.get(i);
+            try {
+                if (!arrowFileReader.loadRecordBatch(rbBlock)) {
+                    throw new IOException("Expected to read record batch");
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            this.totalRows += root.getRowCount();
+            System.err.println("\t arrow row count is " + root.getRowCount());
+        }
     }
 
     private void holderConsumeFloat4(FieldVector fv) {
@@ -232,54 +320,6 @@ public class ArrowReaderDebug extends BenchmarkResults {
                 this.checksum+=length;
                 this.binarySizeCount+=length;
             }
-        }
-    }
-
-    @Override
-    public void run() {
-        try {
-            Long s2 = System.nanoTime();
-            // TODO: what is this size?
-            int size = arrowBlocks.size();
-            System.err.println("Number of arrow block are : " + size + " who sets these?");
-            // this seems to come from parquet block size ~128MB
-            for (int i = 0; i < size; i++) {
-                ArrowBlock rbBlock = arrowBlocks.get(i);
-                if (!arrowFileReader.loadRecordBatch(rbBlock)) {
-                    throw new IOException("Expected to read record batch");
-                }
-                this.totalRows += root.getRowCount();
-                System.err.println("\t arrow row count is " + root.getRowCount());
-                /* read all the fields */
-                int numCols = fieldVector.size();
-                for (int j = 0; j < numCols; j++) {
-                    FieldVector fv = fieldVector.get(j);
-                    switch (fv.getMinorType()) {
-                        case INT:
-                            holderConsumeInt42(fv);
-                            break;
-                        case BIGINT:
-                            holderConsumeBigInt2(fv);
-                            break;
-                        case FLOAT4:
-                            holderConsumeFloat42(fv);
-                            break;
-                        case FLOAT8:
-                            holderConsumeFloat82(fv);
-                            break;
-                        case VARBINARY:
-                            holderConsumeBinary2(fv);
-                            break;
-                        default:
-                            throw new Exception("Unknown minor type: " + fv.getMinorType());
-                    }
-                }
-            }
-            long s3 = System.nanoTime();
-            this.runtimeInNS = s3 - s2;
-            arrowFileReader.close();
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 }

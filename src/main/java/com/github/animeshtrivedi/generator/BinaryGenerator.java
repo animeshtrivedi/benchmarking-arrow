@@ -27,6 +27,7 @@ import java.nio.channels.WritableByteChannel;
 public class BinaryGenerator extends ArrowDataGenerator {
     private int binSize;
     private byte[] bin;
+    private long totalRows;
 
     public BinaryGenerator(WritableByteChannel channel) {
         super(channel);
@@ -37,6 +38,7 @@ public class BinaryGenerator extends ArrowDataGenerator {
         }
         this.binSize = Configuration.binSize;
         this.bin = new byte[this.binSize];
+        this.totalRows = 0;
     }
 
     @Override
@@ -45,5 +47,50 @@ public class BinaryGenerator extends ArrowDataGenerator {
         for (int i = 0; i < count; i++) {
             binVector.setSafe(i, bin);
         }
+    }
+
+    @Override
+    public long totalInts() {
+        return 0;
+    }
+
+    @Override
+    public long totalLongs() {
+        return 0;
+    }
+
+    @Override
+    public long totalFloat8() {
+        return 0;
+    }
+
+    @Override
+    public long totalFloat4() {
+        return 0;
+    }
+
+    @Override
+    public long totalBinary() {
+        return this.totalRows;
+    }
+
+    @Override
+    public long totalBinarySize() {
+        return (this.totalRows * this.binSize);
+    }
+
+    @Override
+    public long totalRows() {
+        return 0;
+    }
+
+    @Override
+    public double getChecksum() {
+        return 0;
+    }
+
+    @Override
+    public long getRunTimeinNS() {
+        return 0;
     }
 }
