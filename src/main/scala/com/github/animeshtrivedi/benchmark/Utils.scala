@@ -48,7 +48,7 @@ object Utils {
   def enumerateWithSize(directoryName:String):Array[(String, Long)] = {
     if(directoryName != null) {
       val path = new Path(directoryName)
-      val conf = new Configuration()
+      val conf = new org.apache.hadoop.conf.Configuration()
       val fileSystem = path.getFileSystem(conf)
       // we get the file system
       val fileStatus: Array[FileStatus] = fileSystem.listStatus(path)
