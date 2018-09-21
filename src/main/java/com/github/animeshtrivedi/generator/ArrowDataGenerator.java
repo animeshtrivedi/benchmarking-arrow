@@ -111,6 +111,7 @@ public abstract class ArrowDataGenerator implements DataInterface {
             this.arrowFileWriter.start();
             while (rowsToGenerate > 0) {
                 int now = (int) Math.min(rowsToGenerate, this.stepping);
+                this.arrowVectorSchemaRoot.setRowCount(now);
                 for(int colIdx = 0; colIdx < columns; colIdx++){
                     // for all columns
                     FieldVector fv = fieldVectors.get(colIdx);
@@ -118,6 +119,7 @@ public abstract class ArrowDataGenerator implements DataInterface {
                     fillup(now, fv);
                     fv.setValueCount(now);
                 }
+
                 // once all columns have been generated, write the batch out
                 this.arrowFileWriter.writeBatch();
                 // decrease the count
