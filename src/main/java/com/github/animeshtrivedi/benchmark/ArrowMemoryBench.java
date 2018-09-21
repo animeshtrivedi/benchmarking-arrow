@@ -16,25 +16,27 @@
  */
 package com.github.animeshtrivedi.benchmark;
 
-public class ArrowMemoryReader extends BenchmarkResults {
-    private ArrowReaderDebug rx;
-    private ParquetToArrow pqa;
+import com.github.animeshtrivedi.generator.ArrowDataGenerator;
+import com.github.animeshtrivedi.generator.GeneratorFactory;
+
+public class ArrowMemoryBench extends BenchmarkResults {
+    private ArrowReader rx;
+    private ArrowDataGenerator generator;
     private MemoryIOChannel cx;
     private Thread tx;
 
-
-    void setInputOutput(String inputParquetFileName) throws Exception {
+    public ArrowMemoryBench() throws Exception {
         this.cx = new MemoryIOChannel();
-        this.pqa = new ParquetToArrow();
-        pqa.setInputOutput(inputParquetFileName, cx);
-        this.tx = new Thread(pqa);
+        this.generator = GeneratorFactory.generator(this.cx);
+        this.tx = new Thread(this.generator);
         this.tx.start();
-        rx = new ArrowReaderDebug();
+        rx = new ArrowReader();
     }
 
     public void finishInit() throws Exception {
         try {
             this.tx.join();
+            System.err.println(this.generator.toString());
             rx.init(cx);
         } catch (Exception e) {
             e.printStackTrace();

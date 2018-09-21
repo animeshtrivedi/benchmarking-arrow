@@ -17,6 +17,7 @@
 package com.github.animeshtrivedi.benchmark;
 
 import com.github.animeshtrivedi.generator.BinaryGenerator;
+import com.github.animeshtrivedi.generator.GeneratorFactory;
 import org.apache.log4j.Logger;
 import scala.Tuple2;
 
@@ -31,20 +32,20 @@ public class Main {
             // step 1: enumerate all files which are there and take top "parallel" items
             Tuple2<String, Object>[] list =
                     Utils.enumerateWithSize(Configuration.inputDir);
-            if (list.length < Configuration.parallel) {
+            if (Configuration.isFileReadingInvolved && list.length < Configuration.parallel) {
                 throw new Exception("Parallel request " + Configuration.parallel +
                         " is more than the number of files " + list.length);
             }
             DataInterface[] ops = new DataInterface[Configuration.parallel];
 
             if (Configuration.testName.compareToIgnoreCase("datagen") == 0) {
-                if (Configuration.type.compareToIgnoreCase("binary") == 0) {
+                if (Configuration.type == GeneratorFactory.INT_GENERATOR) {
                     for (int i = 0; i < Configuration.parallel; i++) {
                         HDFSWritableByteChannel w = new HDFSWritableByteChannel(Configuration.destination+i);
                         BinaryGenerator temp = new BinaryGenerator(w);
                         ops[i] = temp;
                     }
-                } else if (Configuration.type.compareToIgnoreCase("int") == 0) {
+                } else if (Configuration.type == GeneratorFactory.BIN_GENERATOR) {
                     for (int i = 0; i < Configuration.parallel; i++) {
                         HDFSWritableByteChannel w = new HDFSWritableByteChannel("/datagen/arrow/output"+i);
                         BinaryGenerator temp = new BinaryGenerator(w);
@@ -65,11 +66,10 @@ public class Main {
                     temp.init(list[i]._1());
                     ops[i] = temp;
                 }
-            } else if (Configuration.testName.compareToIgnoreCase("ArrowMemRead") == 0) {
-                ArrowMemoryReader tempArr[] = new ArrowMemoryReader[Configuration.parallel];
+            } else if (Configuration.testName.compareToIgnoreCase("ArrowMemBench") == 0) {
+                ArrowMemoryBench tempArr[] = new ArrowMemoryBench[Configuration.parallel];
                 for (int i = 0; i < Configuration.parallel; i++) {
-                    tempArr[i] = new ArrowMemoryReader();
-                    tempArr[i].setInputOutput(list[i]._1());
+                    tempArr[i] = new ArrowMemoryBench();
                 }
                 for (int i = 0; i < Configuration.parallel; i++) {
                     tempArr[i].finishInit();

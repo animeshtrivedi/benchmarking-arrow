@@ -16,18 +16,24 @@
  */
 package com.github.animeshtrivedi.benchmark;
 
+import com.github.animeshtrivedi.generator.GeneratorFactory;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 public class Configuration {
     // 1 MB writing buffer size
     static int writeBufferSizeShift = 20;
     static int writeBufferSize = 1 << Configuration.writeBufferSizeShift;
 
-    // write to a Crail, HDFS or local file system?
-    static String[] validDestinations ={"hdfs", "crail", "local"};
     static String destination = "hdfs";
     // max fixed-size byte array width
     static int maxByteWidth = 8;
     // which test to do
     static String testName = "datagen";
+    static List<String> fileReadTests = Arrays.asList("parquettoarrow", "arrowread");
+    static boolean isFileReadingInvolved = true;
     // input
     static String inputDir = null;
     static String outputDir = null;
@@ -46,9 +52,9 @@ public class Configuration {
     }
 
     // data gen settings
-    public static String type = "binary";
     public static int numCols = 1;
     public static long rowsPerThread = 1000;
     public static int binSize = 1024;
     public static int stepping = 1000;
+    public static int type = GeneratorFactory.INT_GENERATOR;
 }

@@ -44,6 +44,10 @@ public class IntegerGenerator extends ArrowDataGenerator {
         this.totalInts+=count;
     }
 
+    public String toString() {
+        return "IntegerGenerator" + super.toString();
+    }
+
     @Override
     public long totalInts() {
         return this.totalInts;

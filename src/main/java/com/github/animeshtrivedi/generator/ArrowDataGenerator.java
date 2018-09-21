@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.ipc.ArrowFileWriter;
 import org.apache.arrow.vector.types.FloatingPointPrecision;
 import org.apache.arrow.vector.types.Types;
@@ -44,6 +45,10 @@ public abstract class ArrowDataGenerator implements DataInterface {
     protected ArrowFileWriter arrowFileWriter;
     protected RootAllocator ra;
 
+    public String toString() {
+        return " rows: " + rows + " columns " + columns + " stepping " + stepping;
+    }
+
     public ArrowDataGenerator(WritableByteChannel channel){
         this.rows = Configuration.rowsPerThread;
         this.columns = Configuration.numCols;
@@ -53,7 +58,7 @@ public abstract class ArrowDataGenerator implements DataInterface {
         this.ra = new RootAllocator(Integer.MAX_VALUE);
     }
 
-    public void makeArrowSchema(String colName /*can pass "" as column name */, Types.MinorType type) throws Exception {
+    protected void makeArrowSchema(String colName /*can pass "" as column name */, Types.MinorType type) throws Exception {
         ImmutableList.Builder<Field> childrenBuilder = ImmutableList.builder();
         // generate column number of homogenous columns
         switch (type) {
@@ -90,6 +95,11 @@ public abstract class ArrowDataGenerator implements DataInterface {
             default : throw new Exception(" NYI " + type);
         }
         this.arrowSchema = new Schema(childrenBuilder.build(), null);
+        this.arrowVectorSchemaRoot = VectorSchemaRoot.create(this.arrowSchema, this.ra);
+        DictionaryProvider.MapDictionaryProvider provider = new DictionaryProvider.MapDictionaryProvider();
+        this.arrowFileWriter = new ArrowFileWriter(this.arrowVectorSchemaRoot,
+                provider,
+                this.channel);
     }
 
     abstract void fillup(int count, FieldVector vector);

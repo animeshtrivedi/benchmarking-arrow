@@ -16,8 +16,11 @@
  */
 package com.github.animeshtrivedi.benchmark;
 
+import com.github.animeshtrivedi.generator.GeneratorFactory;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Logger;
+
+import java.util.ArrayList;
 
 public class ParseOptions {
     private Options options;
@@ -37,7 +40,7 @@ public class ParseOptions {
         options.addOption("s", "size", true, "size for binary payload");
         options.addOption("n", "name", true, "int, or binary");
         options.addOption("c", "nulCols", true, "number of columns");
-        options.addOption("g", "groupSize", true, "row group size in Arrow");
+        options.addOption("g", "groupSize", true, "row group size (stepping) in Arrow");
 
     }
 
@@ -56,7 +59,9 @@ public class ParseOptions {
                 System.exit(0);
             }
             if (cmd.hasOption("t")) {
-                Configuration.testName = cmd.getOptionValue("t").trim();
+                Configuration.testName = cmd.getOptionValue("t").trim().toLowerCase();
+                if(!Configuration.fileReadTests.contains(Configuration.testName))
+                    Configuration.isFileReadingInvolved = false;
             }
             if (cmd.hasOption("i")) {
                 Configuration.inputDir = cmd.getOptionValue("i").trim();
@@ -85,7 +90,14 @@ public class ParseOptions {
                 Configuration.binSize = Integer.parseInt(cmd.getOptionValue("s").trim());
             }
             if (cmd.hasOption("n")) {
-                Configuration.type = cmd.getOptionValue("n").trim();
+                 String name = cmd.getOptionValue("n").trim();
+                 if(name.compareToIgnoreCase("int") == 0)
+                     Configuration.type = GeneratorFactory.INT_GENERATOR;
+                 else if (name.compareToIgnoreCase("binary") == 0) {
+                    Configuration.type = GeneratorFactory.BIN_GENERATOR;
+                } else {
+                     throw new ParseException("Illegal name for a type " + name);
+                 }
             }
             if (cmd.hasOption("c")) {
                 Configuration.numCols = Integer.parseInt(cmd.getOptionValue("c").trim());
