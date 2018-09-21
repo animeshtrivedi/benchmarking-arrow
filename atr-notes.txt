@@ -1,1 +1,15 @@
 https://arrow.apache.org/docs/java/
+
+
+   java.lang.Thread.State: RUNNABLE
+	at com.github.animeshtrivedi.benchmark.MemoryIOChannel.read(MemoryIOChannel.java:52)
+	at org.apache.arrow.vector.ipc.ReadChannel.readFully(ReadChannel.java:57)
+	at org.apache.arrow.vector.ipc.ReadChannel.readFully(ReadChannel.java:79)
+	at org.apache.arrow.vector.ipc.message.MessageSerializer.deserializeRecordBatch(MessageSerializer.java:291)
+	at org.apache.arrow.vector.ipc.ArrowFileReader.readRecordBatch(ArrowFileReader.java:162)
+	at org.apache.arrow.vector.ipc.ArrowFileReader.loadNextBatch(ArrowFileReader.java:113)
+	at org.apache.arrow.vector.ipc.ArrowFileReader.loadRecordBatch(ArrowFileReader.java:139)
+	at com.github.animeshtrivedi.benchmark.ArrowReaderDebug.mode2(ArrowReaderDebug.java:143)
+	at com.github.animeshtrivedi.benchmark.ArrowReaderDebug.run(ArrowReaderDebug.java:118)
+	at com.github.animeshtrivedi.benchmark.ArrowMemoryBench.run(ArrowMemoryBench.java:47)
+	at java.lang.Thread.run(Thread.java:748)

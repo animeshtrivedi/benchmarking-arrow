@@ -41,7 +41,7 @@ public class Main {
             if (Configuration.testName.compareToIgnoreCase("datagen") == 0) {
                 if (Configuration.type == GeneratorFactory.INT_GENERATOR) {
                     for (int i = 0; i < Configuration.parallel; i++) {
-                        HDFSWritableByteChannel w = new HDFSWritableByteChannel(Configuration.destination+i);
+                        HDFSWritableByteChannel w = new HDFSWritableByteChannel(Configuration.outputDir+i);
                         BinaryGenerator temp = new BinaryGenerator(w);
                         ops[i] = temp;
                     }

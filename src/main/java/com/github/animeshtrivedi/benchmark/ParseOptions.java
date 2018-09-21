@@ -32,7 +32,6 @@ public class ParseOptions {
         options.addOption("t", "test", true, "test to perform - ParquetToArrow OR ArrowRead (case in-sensitive).");
         options.addOption("i", "input", true, "input directory containing files.");
         options.addOption("o", "output", true, "output directory location.");
-        options.addOption("d", "destination", true, "output destination: hdfs, crail, or local.");
         options.addOption("w", "writeBufferSize", true, "write buffer size, default: 1MB");
         options.addOption("p", "parallel", true, "number of parallel instances");
 
@@ -41,6 +40,7 @@ public class ParseOptions {
         options.addOption("n", "name", true, "int, or binary");
         options.addOption("c", "nulCols", true, "number of columns");
         options.addOption("g", "groupSize", true, "row group size (stepping) in Arrow");
+        options.addOption("d", "debug", false, "debug mode");
 
     }
 
@@ -70,7 +70,7 @@ public class ParseOptions {
                 Configuration.outputDir = cmd.getOptionValue("o").trim();
             }
             if (cmd.hasOption("d")) {
-                Configuration.destination = cmd.getOptionValue("d").trim();
+                Configuration.debug = true;
             }
             if (cmd.hasOption("w")) {
                 long sz = Integer.parseInt(cmd.getOptionValue("w").trim());

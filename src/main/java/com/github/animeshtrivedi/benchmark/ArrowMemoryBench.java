@@ -20,7 +20,7 @@ import com.github.animeshtrivedi.generator.ArrowDataGenerator;
 import com.github.animeshtrivedi.generator.GeneratorFactory;
 
 public class ArrowMemoryBench extends BenchmarkResults {
-    private ArrowReader rx;
+    private BenchmarkResults rx;
     private ArrowDataGenerator generator;
     private MemoryIOChannel cx;
     private Thread tx;
@@ -30,14 +30,22 @@ public class ArrowMemoryBench extends BenchmarkResults {
         this.generator = GeneratorFactory.generator(this.cx);
         this.tx = new Thread(this.generator);
         this.tx.start();
-        rx = new ArrowReader();
     }
 
     public void finishInit() throws Exception {
         try {
             this.tx.join();
             System.err.println(this.generator.toString());
-            rx.init(cx);
+            if(Configuration.debug) {
+                ArrowReaderDebug tmp = new ArrowReaderDebug();
+                tmp.init(cx);
+                this.rx = tmp;
+            } else {
+                ArrowReader tmp = new ArrowReader();
+                tmp.init(cx);
+                this.rx = tmp;
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
         }

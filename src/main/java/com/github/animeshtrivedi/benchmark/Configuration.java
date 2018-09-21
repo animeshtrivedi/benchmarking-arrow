@@ -27,7 +27,6 @@ public class Configuration {
     static int writeBufferSizeShift = 20;
     static int writeBufferSize = 1 << Configuration.writeBufferSizeShift;
 
-    static String destination = "hdfs";
     // max fixed-size byte array width
     static int maxByteWidth = 8;
     // which test to do
@@ -57,4 +56,6 @@ public class Configuration {
     public static int binSize = 1024;
     public static int stepping = 1000;
     public static int type = GeneratorFactory.INT_GENERATOR;
+
+    public static boolean debug = false;
 }

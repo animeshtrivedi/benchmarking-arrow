@@ -190,20 +190,11 @@ public class ParquetToArrow extends BenchmarkResults {
     }
 
     private void setOutputChannel(String arrowFileName, String arrowOutputDirectory) throws Exception {
-        if(Configuration.destination.compareToIgnoreCase("local") == 0) {
-            logger.info("Creating a local file with name : " + arrowFileName);
-            File arrowFile = new File("./" + arrowFileName);
-            FileOutputStream fileOutputStream = new FileOutputStream(arrowFile);
-            this.wchannel = fileOutputStream.getChannel();
-        } else if(Configuration.destination.compareToIgnoreCase("hdfs") == 0){
-            /* use HDFS files */
-            Path arrowPath = new Path(arrowOutputDirectory);
-            String arrowFullPath = arrowPath.toUri().toString() + "/" + arrowFileName;
-            logger.info("Creating an HDFS file with name : " + arrowFullPath);
-            this.wchannel = new HDFSWritableByteChannel(arrowFullPath);
-        } else if(Configuration.destination.compareToIgnoreCase("crail") == 0) {
-            throw new NotImplementedException();
-        }
+        // this alone should be sufficient with fully qualified path names like file://, hdfs://, or crail://
+        Path arrowPath = new Path(arrowOutputDirectory);
+        String arrowFullPath = arrowPath.toUri().toString() + "/" + arrowFileName;
+        logger.info("Creating a file : " + arrowFullPath);
+        this.wchannel = new HDFSWritableByteChannel(arrowFullPath);
     }
 
     public void run() {
