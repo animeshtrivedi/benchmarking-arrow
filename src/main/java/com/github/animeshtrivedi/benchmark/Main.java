@@ -68,23 +68,27 @@ public class Main {
                 }
             } else if (Configuration.testName.compareToIgnoreCase("ArrowMemBench") == 0) {
                 ArrowMemoryBench tempArr[] = new ArrowMemoryBench[Configuration.parallel];
+                logger.info("...allocated " + Configuration.parallel + " ArrowMemoryBench array");
                 for (int i = 0; i < Configuration.parallel; i++) {
                     tempArr[i] = new ArrowMemoryBench();
+                    logger.info("...\t allocated [" + i + "] ArrowMemoryBench object");
                 }
+                logger.info("... going to wait for them to finish ");
                 for (int i = 0; i < Configuration.parallel; i++) {
                     tempArr[i].finishInit();
+                    logger.info("...\t finished [" + i + "] ");
                     ops[i] = tempArr[i];
                 }
             } else {
                 throw new Exception("Illegal test name: " + Configuration.testName);
             }
 
-            System.out.println("Allocating " + Configuration.parallel +" thread objects ");
+            logger.info("...allocating " + Configuration.parallel +" thread objects ");
             Thread t[] = new Thread[Configuration.parallel];
             for (int i = 0; i < Configuration.parallel; i++) {
                 t[i] = new Thread(ops[i]);
             }
-            System.out.println("Test prep finished, starting the execution now ...");
+            logger.info("...test prep finished, starting the execution now");
             long start = System.nanoTime();
             for (int i = 0; i < Configuration.parallel; i++) {
                 t[i].start();
@@ -93,15 +97,12 @@ public class Main {
                 t[i].join();
             }
             long end = System.nanoTime();
-
+            logger.info("...test ends");
             long totalBytes = 0;
             for (int i = 0; i < Configuration.parallel; i++) {
                 totalBytes += ops[i].getTotalBytesProcessed();
                 System.out.println("\t [" + i + "] " + ops[i].summary());
             }
-            if (totalBytes == 0)
-                totalBytes = BenchmarkDebugConfiguration.F100StoreSalesSizeByte;
-
             String bandwidthGbps = String.format("%.2f", (((double) totalBytes * 8) / (end - start)));
             System.out.println("-----------------------------------------------------------------------");
             System.out.println("Total bytes: " + totalBytes + "(" + Utils.sizeToSizeStr2(totalBytes) + ") bandwidth " + bandwidthGbps + " Gbps");
