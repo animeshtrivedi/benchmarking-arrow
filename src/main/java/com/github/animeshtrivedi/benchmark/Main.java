@@ -69,9 +69,16 @@ public class Main {
             } else if (Configuration.testName.compareToIgnoreCase("ArrowMemBench") == 0) {
                 ArrowMemoryBench tempArr[] = new ArrowMemoryBench[Configuration.parallel];
                 logger.info("...allocated " + Configuration.parallel + " ArrowMemoryBench array");
-                for (int i = 0; i < Configuration.parallel; i++) {
-                    tempArr[i] = new ArrowMemoryBench();
-                    logger.info("...\t allocated [" + i + "] ArrowMemoryBench object");
+                if(Configuration.inputDir != null){
+                    for (int i = 0; i < Configuration.parallel; i++) {
+                        tempArr[i] = new ArrowMemoryBench(list[i]._1());
+                        logger.info("...\t allocated [" + i + "] ArrowMemoryBench object for file " + list[i]._1());
+                    }
+                } else {
+                    for (int i = 0; i < Configuration.parallel; i++) {
+                        tempArr[i] = new ArrowMemoryBench();
+                        logger.info("...\t allocated [" + i + "] ArrowMemoryBench object, with datagen");
+                    }
                 }
                 logger.info("... going to wait for them to finish ");
                 for (int i = 0; i < Configuration.parallel; i++) {

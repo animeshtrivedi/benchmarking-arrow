@@ -18,6 +18,7 @@ package com.github.animeshtrivedi.benchmark;
 
 import com.github.animeshtrivedi.generator.ArrowDataGenerator;
 import com.github.animeshtrivedi.generator.GeneratorFactory;
+import org.apache.parquet.hadoop.ParquetFileReader;
 
 public class ArrowMemoryBench extends BenchmarkResults {
     private BenchmarkResults rx;
@@ -27,15 +28,29 @@ public class ArrowMemoryBench extends BenchmarkResults {
 
     public ArrowMemoryBench() throws Exception {
         this.cx = new MemoryIOChannel();
+        // in this constructor we generate data on the fly to benchmark
         this.generator = GeneratorFactory.generator(this.cx);
         this.tx = new Thread(this.generator);
+        this.tx.start();
+    }
+
+    public ArrowMemoryBench(String parquetFileName) throws Exception {
+        this.cx = new MemoryIOChannel();
+        // in this constructor we read the parquet file and hold in memory
+        ParquetToArrow parquetFileReader = new ParquetToArrow();
+        parquetFileReader.setInputOutput(parquetFileName, this.cx);
+        this.tx = new Thread(parquetFileReader);
         this.tx.start();
     }
 
     public void finishInit() throws Exception {
         try {
             this.tx.join();
-            System.err.println(this.generator.toString());
+            if(this.generator != null){
+                System.err.println(this.generator.toString());
+            } else {
+                System.err.println("parquet data reading finished");
+            }
             if(Configuration.debug) {
                 ArrowReaderDebug tmp = new ArrowReaderDebug();
                 tmp.init(cx);
