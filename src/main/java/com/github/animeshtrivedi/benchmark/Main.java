@@ -16,8 +16,6 @@
  */
 package com.github.animeshtrivedi.benchmark;
 
-import com.github.animeshtrivedi.generator.BinaryGenerator;
-import com.github.animeshtrivedi.generator.GeneratorFactory;
 import org.apache.log4j.Logger;
 import scala.Tuple2;
 
@@ -36,84 +34,16 @@ public class Main {
                 throw new Exception("Parallel request " + Configuration.parallel +
                         " is more than the number of files " + list.length);
             }
-            DataInterface[] ops = new DataInterface[Configuration.parallel];
-
-            if (Configuration.testName.compareToIgnoreCase("datagen") == 0) {
-                if (Configuration.type == GeneratorFactory.INT_GENERATOR) {
-                    for (int i = 0; i < Configuration.parallel; i++) {
-                        HDFSWritableByteChannel w = new HDFSWritableByteChannel(Configuration.outputDir+i);
-                        BinaryGenerator temp = new BinaryGenerator(w);
-                        ops[i] = temp;
-                    }
-                } else if (Configuration.type == GeneratorFactory.BIN_GENERATOR) {
-                    for (int i = 0; i < Configuration.parallel; i++) {
-                        HDFSWritableByteChannel w = new HDFSWritableByteChannel("/datagen/arrow/output"+i);
-                        BinaryGenerator temp = new BinaryGenerator(w);
-                        ops[i] = temp;
-                    }
-                } else {
-                    throw new Exception("datagen type " + Configuration.type + " not implemented");
-                }
-            } else if (Configuration.testName.compareToIgnoreCase("ParquetToArrow") == 0) {
-                for (int i = 0; i < Configuration.parallel; i++) {
-                    ParquetToArrow temp = new ParquetToArrow();
-                    temp.setInputOutput(list[i]._1(), Configuration.outputDir);
-                    ops[i] = temp;
-                }
-            } else if (Configuration.testName.compareToIgnoreCase("ArrowRead") == 0) {
-                for (int i = 0; i < Configuration.parallel; i++) {
-                    ArrowReaderDebug temp = new ArrowReaderDebug();
-                    temp.init(list[i]._1());
-                    ops[i] = temp;
-                }
-            } else if (Configuration.testName.compareToIgnoreCase("ArrowMemBench") == 0) {
-                ArrowMemoryBench tempArr[] = new ArrowMemoryBench[Configuration.parallel];
-                logger.info("...allocated " + Configuration.parallel + " ArrowMemoryBench array");
-                if(Configuration.inputDir != null){
-                    for (int i = 0; i < Configuration.parallel; i++) {
-                        tempArr[i] = new ArrowMemoryBench(list[i]._1());
-                        logger.info("...\t allocated [" + i + "] ArrowMemoryBench object for file " + list[i]._1());
-                    }
-                } else {
-                    for (int i = 0; i < Configuration.parallel; i++) {
-                        tempArr[i] = new ArrowMemoryBench();
-                        logger.info("...\t allocated [" + i + "] ArrowMemoryBench object, with datagen");
-                    }
-                }
-                logger.info("... going to wait for them to finish ");
-                for (int i = 0; i < Configuration.parallel; i++) {
-                    tempArr[i].finishInit();
-                    logger.info("...\t finished [" + i + "] ");
-                    ops[i] = tempArr[i];
-                }
-            } else {
-                throw new Exception("Illegal test name: " + Configuration.testName);
+            if(Configuration.warmup) {
+                ExecuteTest warmup = new ExecuteTest();
+                warmup.runTest(list);
+                logger.info("warm-up run finished, runnign GC now...");
+                System.gc();
+                Thread.sleep(1000);
             }
-
-            logger.info("...allocating " + Configuration.parallel +" thread objects ");
-            Thread t[] = new Thread[Configuration.parallel];
-            for (int i = 0; i < Configuration.parallel; i++) {
-                t[i] = new Thread(ops[i]);
-            }
-            logger.info("...test prep finished, starting the execution now");
-            long start = System.nanoTime();
-            for (int i = 0; i < Configuration.parallel; i++) {
-                t[i].start();
-            }
-            for (int i = 0; i < Configuration.parallel; i++) {
-                t[i].join();
-            }
-            long end = System.nanoTime();
-            logger.info("...test ends");
-            long totalBytes = 0;
-            for (int i = 0; i < Configuration.parallel; i++) {
-                totalBytes += ops[i].getTotalBytesProcessed();
-                System.out.println("\t [" + i + "] " + ops[i].summary());
-            }
-            String bandwidthGbps = String.format("%.2f", (((double) totalBytes * 8) / (end - start)));
-            System.out.println("-----------------------------------------------------------------------");
-            System.out.println("Total bytes: " + totalBytes + "(" + Utils.sizeToSizeStr2(totalBytes) + ") bandwidth " + bandwidthGbps + " Gbps");
-            System.out.println("-----------------------------------------------------------------------");
+            logger.info("starting the test run");
+            ExecuteTest testRun = new ExecuteTest();
+            testRun.runTest(list);
         } catch (Exception e) {
             e.printStackTrace();
         }

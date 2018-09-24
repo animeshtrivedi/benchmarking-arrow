@@ -41,6 +41,7 @@ public class ParseOptions {
         options.addOption("c", "nulCols", true, "number of columns");
         options.addOption("g", "groupSize", true, "row group size (stepping) in Arrow");
         options.addOption("d", "debug", false, "debug mode");
+        options.addOption("x", "warmup run", false, "do a warm-up");
 
     }
 
@@ -71,6 +72,9 @@ public class ParseOptions {
             }
             if (cmd.hasOption("d")) {
                 Configuration.debug = true;
+            }
+            if (cmd.hasOption("x")) {
+                Configuration.warmup = true;
             }
             if (cmd.hasOption("w")) {
                 long sz = Integer.parseInt(cmd.getOptionValue("w").trim());
