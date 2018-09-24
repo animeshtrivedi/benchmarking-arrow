@@ -18,6 +18,8 @@ package com.github.animeshtrivedi.benchmark;
 
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.*;
+import org.apache.arrow.vector.holders.NullableVarBinaryHolder;
+import org.apache.arrow.vector.holders.VarBinaryHolder;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
 import org.apache.arrow.vector.ipc.SeekableReadChannel;
 import org.apache.arrow.vector.ipc.message.ArrowBlock;
@@ -119,6 +121,21 @@ public class ArrowReader extends BenchmarkResults {
         }
     }
 
+    private void consumeBinaryHolder(FieldVector fv) {
+        VarBinaryVector accessor = (VarBinaryVector) fv;
+        NullableVarBinaryHolder holder = new NullableVarBinaryHolder();
+        int valCount = accessor.getValueCount();
+        for(int i = 0; i < valCount; i++){
+            accessor.get(i, holder);
+            if(holder.isSet == 1){
+                binaryCount+=1;
+                int length = holder.end  - holder.start;
+                this.checksum+=length;
+                this.binarySizeCount+=length;
+            }
+        }
+    }
+
     @Override
     public void run() {
         try {
@@ -149,7 +166,8 @@ public class ArrowReader extends BenchmarkResults {
                             consumeFloat8(fv);
                             break;
                         case VARBINARY:
-                            consumeBinary(fv);
+                            //consumeBinary(fv);
+                            consumeBinaryHolder(fv);
                             break;
                         default:
                             throw new Exception("Unknown minor type: " + fv.getMinorType());
