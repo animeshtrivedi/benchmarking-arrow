@@ -18,9 +18,11 @@ package com.github.animeshtrivedi.benchmark;
 
 import com.github.animeshtrivedi.generator.ArrowDataGenerator;
 import com.github.animeshtrivedi.generator.GeneratorFactory;
-import org.apache.parquet.hadoop.ParquetFileReader;
+import org.apache.log4j.Logger;
+import sun.misc.GC;
 
 public class ArrowMemoryBench extends BenchmarkResults {
+    final static Logger logger = Logger.getLogger(ArrowMemoryBench.class);
     private BenchmarkResults rx;
     private ArrowDataGenerator generator;
     private MemoryIOChannel cx;
@@ -47,10 +49,14 @@ public class ArrowMemoryBench extends BenchmarkResults {
         try {
             this.tx.join();
             if(this.generator != null){
-                System.err.println(this.generator.toString());
+                logger.info(this.generator.toString());
             } else {
-                System.err.println("parquet data reading finished");
+                logger.info("parquet data reading finished");
             }
+            logger.info("Running GC now...");
+            System.gc();
+            logger.info("...sleeping for 5 seconds");
+            Thread.sleep(5000);
             if(Configuration.debug) {
                 ArrowReaderDebug tmp = new ArrowReaderDebug();
                 tmp.init(cx);
