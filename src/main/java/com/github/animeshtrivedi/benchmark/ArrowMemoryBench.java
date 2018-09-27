@@ -19,30 +19,36 @@ package com.github.animeshtrivedi.benchmark;
 import com.github.animeshtrivedi.generator.ArrowDataGenerator;
 import com.github.animeshtrivedi.generator.GeneratorFactory;
 import org.apache.log4j.Logger;
-import sun.misc.GC;
 
 public class ArrowMemoryBench extends BenchmarkResults {
     final static Logger logger = Logger.getLogger(ArrowMemoryBench.class);
     private BenchmarkResults rx;
     private ArrowDataGenerator generator;
-    private MemoryIOChannel cx;
+    private MemoryChannel cx;
     private Thread tx;
 
-    public ArrowMemoryBench() throws Exception {
-        this.cx = new MemoryIOChannel();
-        // in this constructor we generate data on the fly to benchmark
-        this.generator = GeneratorFactory.generator(this.cx);
-        this.tx = new Thread(this.generator);
+    private void _start(){
+        this.cx = MemoryChannel.getChannel();
+    }
+    private void _end(){
         this.tx.start();
     }
 
+    public ArrowMemoryBench() throws Exception {
+        _start();
+        // in this constructor we generate data on the fly to benchmark
+        this.generator = GeneratorFactory.generator(this.cx);
+        this.tx = new Thread(this.generator);
+        _end();
+    }
+
     public ArrowMemoryBench(String parquetFileName) throws Exception {
-        this.cx = new MemoryIOChannel();
+        _start();
         // in this constructor we read the parquet file and hold in memory
         ParquetToArrow parquetFileReader = new ParquetToArrow();
         parquetFileReader.setInputOutput(parquetFileName, this.cx);
         this.tx = new Thread(parquetFileReader);
-        this.tx.start();
+        _end();
     }
 
     public void finishInit() throws Exception {
@@ -53,10 +59,11 @@ public class ArrowMemoryBench extends BenchmarkResults {
             } else {
                 logger.info("parquet data reading finished");
             }
-            logger.info("Running GC now...");
-            System.gc();
-            logger.info("...sleeping for 5 seconds");
-            Thread.sleep(5000);
+            //TODO: somehow this is the key to move the performance form ~100 Gbps to 150+ Gbps on 16 cores
+            // I don't know running GC here has a different effect than running in the start and end of
+            // ExecuteTest framework. Also, here it runs synchronously.
+            RunGC.getInstance().runGC();
+
             if(Configuration.debug) {
                 ArrowReaderDebug tmp = new ArrowReaderDebug();
                 tmp.init(cx);
