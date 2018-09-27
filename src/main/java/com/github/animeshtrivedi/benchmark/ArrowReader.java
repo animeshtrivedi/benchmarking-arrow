@@ -68,46 +68,42 @@ public class ArrowReader extends BenchmarkResults {
         this.fieldVector = root.getFieldVectors();
     }
 
-    private void consumeFloat4(FieldVector fv) {
-        Float4Vector accessor = (Float4Vector) fv;
-        int valCount = accessor.getValueCount();
+    protected void consumeFloat4(Float4Vector vector) {
+        int valCount = vector.getValueCount();
         for(int i = 0; i < valCount; i++){
-            if(!accessor.isNull(i)){
+            if(!vector.isNull(i)){
                 float4Count+=1;
-                checksum+=accessor.get(i);
+                checksum+=vector.get(i);
             }
         }
     }
 
-    private void consumeFloat8(FieldVector fv) {
-        Float8Vector accessor = (Float8Vector) fv;
-        int valCount = accessor.getValueCount();
+    protected void consumeFloat8(Float8Vector vector) {
+        int valCount = vector.getValueCount();
         for(int i = 0; i < valCount; i++){
-            if(!accessor.isNull(i)){
+            if(!vector.isNull(i)){
                 float8Count+=1;
-                checksum+=accessor.get(i);
+                checksum+=vector.get(i);
             }
         }
     }
 
-    private void consumeInt4(FieldVector fv) {
-        IntVector accessor = (IntVector) fv;
-        int valCount = accessor.getValueCount();
+    protected void consumeInt4(IntVector vector) {
+        int valCount = vector.getValueCount();
         for(int i = 0; i < valCount; i++){
-            if(!accessor.isNull(i)){
+            if(!vector.isNull(i)){
                 intCount+=1;
-                checksum+=accessor.get(i);
+                checksum+=vector.get(i);
             }
         }
     }
 
-    private void consumeBigInt(FieldVector fv) {
-        BigIntVector accessor = (BigIntVector) fv;
-        int valCount = accessor.getValueCount();
+    protected void consumeBigInt(BigIntVector vector) {
+        int valCount = vector.getValueCount();
         for(int i = 0; i < valCount; i++){
-            if(!accessor.isNull(i)){
+            if(!vector.isNull(i)){
                 longCount+=1;
-                checksum+=accessor.get(i);
+                checksum+=vector.get(i);
             }
         }
     }
@@ -127,32 +123,13 @@ public class ArrowReader extends BenchmarkResults {
   }
   Call to get(i) allocates a new buffer every time.
      */
-    private void consumeBinary(FieldVector fv) {
+    protected void consumeBinary(VarBinaryVector vector) {
         int length;
-        VarBinaryVector accessor = (VarBinaryVector) fv;
-        int valCount = accessor.getValueCount();
+        int valCount = vector.getValueCount();
         for(int i = 0; i < valCount; i++){
-            if(!accessor.isNull(i)){
+            if(!vector.isNull(i)){
                 binaryCount+=1;
-                length = accessor.get(i).length;
-                this.checksum+=length;
-                this.binarySizeCount+=length;
-            }
-        }
-    }
-
-    /*
-    whereas in the holder, the buffer is just referenced without being materialized
-     */
-    private void consumeBinaryHolder(FieldVector fv) {
-        VarBinaryVector accessor = (VarBinaryVector) fv;
-        NullableVarBinaryHolder holder = new NullableVarBinaryHolder();
-        int valCount = accessor.getValueCount();
-        for(int i = 0; i < valCount; i++){
-            accessor.get(i, holder);
-            if(holder.isSet == 1){
-                binaryCount+=1;
-                int length = holder.end  - holder.start;
+                length = vector.get(i).length;
                 this.checksum+=length;
                 this.binarySizeCount+=length;
             }
@@ -160,7 +137,7 @@ public class ArrowReader extends BenchmarkResults {
     }
 
     @Override
-    public void run() {
+    final public void run() {
         try {
             Long s2 = System.nanoTime();
             // TODO: what is this size?
@@ -180,20 +157,19 @@ public class ArrowReader extends BenchmarkResults {
                     FieldVector fv = fieldVector.get(j);
                     switch (fv.getMinorType()) {
                         case INT:
-                            consumeInt4(fv);
+                            consumeInt4((IntVector) fv);
                             break;
                         case BIGINT:
-                            consumeBigInt(fv);
+                            consumeBigInt((BigIntVector) fv);
                             break;
                         case FLOAT4:
-                            consumeFloat4(fv);
+                            consumeFloat4((Float4Vector) fv);
                             break;
                         case FLOAT8:
-                            consumeFloat8(fv);
+                            consumeFloat8((Float8Vector) fv);
                             break;
                         case VARBINARY:
-                            //consumeBinary(fv);
-                            consumeBinaryHolder(fv);
+                            consumeBinary((VarBinaryVector) fv);
                             break;
                         default:
                             throw new Exception("Unknown minor type: " + fv.getMinorType());

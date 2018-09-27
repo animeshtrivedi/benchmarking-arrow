@@ -46,6 +46,8 @@ public class ParseOptions {
 
         options.addOption("a", "on vs offheap", false, "-a enables offheap direct buffers, otherwise default is on-heap byte[]");
         options.addOption("b", "run gc", false, "-b enables running GC whenever sensible");
+        options.addOption("e", "use holder", false, "-c enables the user of the holder API in arrow");
+        //a, b, c, d, e, [f], g, h, i, [j], [k], [l], [m], n, o, p, [q], r, s, t, [u], v, w, x, [y], [z],
     }
 
     public void show_help() {
@@ -87,6 +89,9 @@ public class ParseOptions {
             }
             if (cmd.hasOption("b")) {
                 Configuration.runGC = true;
+            }
+            if (cmd.hasOption("e")) {
+                Configuration.useHolder = true;
             }
             if (cmd.hasOption("w")) {
                 long sz = Integer.parseInt(cmd.getOptionValue("w").trim());

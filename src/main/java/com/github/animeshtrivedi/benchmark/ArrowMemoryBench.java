@@ -69,7 +69,12 @@ public class ArrowMemoryBench extends BenchmarkResults {
                 tmp.init(cx);
                 this.rx = tmp;
             } else {
-                ArrowReader tmp = new ArrowReader();
+                ArrowReader tmp;
+                if(Configuration.useHolder) {
+                     tmp = new ArrowHolderReader();
+                }else {
+                    tmp = new ArrowReader();
+                }
                 tmp.init(cx);
                 this.rx = tmp;
             }
