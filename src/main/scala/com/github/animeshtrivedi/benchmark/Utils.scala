@@ -16,6 +16,9 @@
  */
 package com.github.animeshtrivedi.benchmark
 
+import java.text.NumberFormat
+import java.util.Locale
+
 import org.apache.hadoop.fs.{FileStatus, Path}
 
 /**
@@ -58,5 +61,9 @@ object Utils {
       /* this will happen for null io */
       List[(String, Long)]().toArray
     }
+  }
+
+  def commaLongNumber(num:Long):String = {
+    NumberFormat.getNumberInstance(Locale.US).format(num)
   }
 }
