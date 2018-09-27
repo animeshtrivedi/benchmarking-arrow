@@ -16,10 +16,9 @@
  */
 package com.github.animeshtrivedi.benchmark;
 
-import org.apache.arrow.memory.RootAllocator;
+import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.holders.NullableVarBinaryHolder;
-import org.apache.arrow.vector.holders.VarBinaryHolder;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
 import org.apache.arrow.vector.ipc.SeekableReadChannel;
 import org.apache.arrow.vector.ipc.message.ArrowBlock;
@@ -28,17 +27,21 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.nio.channels.SeekableByteChannel;
 import java.util.List;
 
 public class ArrowReader extends BenchmarkResults {
+    final static Logger logger = Logger.getLogger(ArrowReader.class);
     private ArrowFileReader arrowFileReader;
     private VectorSchemaRoot root;
     private List<ArrowBlock> arrowBlocks;
     private List<FieldVector> fieldVector;
     private SeekableByteChannel rchannel;
+    private BufferAllocator allocator;
+    private long timestamps[];
 
     public void init(String fileName) throws Exception {
         Configuration conf = new Configuration();
@@ -56,8 +59,10 @@ public class ArrowReader extends BenchmarkResults {
     }
 
     private void _init() throws Exception {
+        //this.allocator = new TracerAllocator(new DebugAllocatorListener(), Integer.MAX_VALUE);
+        this.allocator = new TracerAllocator(Integer.MAX_VALUE);
         this.arrowFileReader = new ArrowFileReader(new SeekableReadChannel(this.rchannel),
-                new RootAllocator(Integer.MAX_VALUE));
+                this.allocator);
         this.root = arrowFileReader.getVectorSchemaRoot();
         this.arrowBlocks = arrowFileReader.getRecordBlocks();
         this.fieldVector = root.getFieldVectors();
@@ -107,6 +112,21 @@ public class ArrowReader extends BenchmarkResults {
         }
     }
 
+    /*
+    public byte[] get(int index) {
+    assert index >= 0;
+    if (isSet(index) == 0) {
+      throw new IllegalStateException("Value at index is null");
+    }
+    final int startOffset = getstartOffset(index);
+    final int dataLength =
+            offsetBuffer.getInt((index + 1) * OFFSET_WIDTH) - startOffset;
+    final byte[] result = new byte[dataLength];
+    valueBuffer.getBytes(startOffset, result, 0, dataLength);
+    return result;
+  }
+  Call to get(i) allocates a new buffer every time.
+     */
     private void consumeBinary(FieldVector fv) {
         int length;
         VarBinaryVector accessor = (VarBinaryVector) fv;
@@ -121,6 +141,9 @@ public class ArrowReader extends BenchmarkResults {
         }
     }
 
+    /*
+    whereas in the holder, the buffer is just referenced without being materialized
+     */
     private void consumeBinaryHolder(FieldVector fv) {
         VarBinaryVector accessor = (VarBinaryVector) fv;
         NullableVarBinaryHolder holder = new NullableVarBinaryHolder();
@@ -142,7 +165,10 @@ public class ArrowReader extends BenchmarkResults {
             Long s2 = System.nanoTime();
             // TODO: what is this size?
             int size = arrowBlocks.size();
+            logger.debug("number of arrow block are : " + size);
+            this.timestamps = new long[size];
             for (int i = 0; i < size; i++) {
+                this.timestamps[i] = System.nanoTime();
                 ArrowBlock rbBlock = arrowBlocks.get(i);
                 if (!arrowFileReader.loadRecordBatch(rbBlock)) {
                     throw new IOException("Expected to read record batch");
@@ -173,10 +199,14 @@ public class ArrowReader extends BenchmarkResults {
                             throw new Exception("Unknown minor type: " + fv.getMinorType());
                     }
                 }
+                this.timestamps[i] = System.nanoTime() - this.timestamps[i];
             }
             long s3 = System.nanoTime();
             this.runtimeInNS = s3 - s2;
             arrowFileReader.close();
+            for (int i = 0; i < this.timestamps.length && com.github.animeshtrivedi.benchmark.Configuration.verbose; i++) {
+                System.err.println("\t runstamp: " + Utils.commaLongNumber(timestamps[i]) + " nanosec | plot " + timestamps[i]);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
