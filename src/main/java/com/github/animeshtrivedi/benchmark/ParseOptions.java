@@ -42,7 +42,10 @@ public class ParseOptions {
         options.addOption("g", "groupSize", true, "row group size (stepping) in Arrow");
         options.addOption("d", "debug", false, "debug mode");
         options.addOption("x", "warmup run", false, "do a warm-up");
+        options.addOption("v", "verbose", false, "show some additional printouts");
 
+        options.addOption("a", "on vs offheap", false, "-a enables offheap direct buffers, otherwise default is on-heap byte[]");
+        options.addOption("b", "run gc", false, "-b enables running GC whenever sensible");
     }
 
     public void show_help() {
@@ -73,8 +76,17 @@ public class ParseOptions {
             if (cmd.hasOption("d")) {
                 Configuration.debug = true;
             }
+            if (cmd.hasOption("v")) {
+                Configuration.verbose = true;
+            }
             if (cmd.hasOption("x")) {
                 Configuration.warmup = true;
+            }
+            if (cmd.hasOption("a")) {
+                Configuration.offHeap = true;
+            }
+            if (cmd.hasOption("b")) {
+                Configuration.runGC = true;
             }
             if (cmd.hasOption("w")) {
                 long sz = Integer.parseInt(cmd.getOptionValue("w").trim());

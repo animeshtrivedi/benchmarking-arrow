@@ -59,4 +59,8 @@ public class Configuration {
 
     public static boolean debug = false;
     public static boolean warmup = false;
+
+    public static boolean verbose = false;
+    public static boolean offHeap = false;
+    public static boolean runGC = false;
 }
