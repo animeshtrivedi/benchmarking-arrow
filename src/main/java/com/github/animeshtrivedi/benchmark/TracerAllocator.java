@@ -17,37 +17,41 @@
 package com.github.animeshtrivedi.benchmark;
 
 import io.netty.buffer.ArrowBuf;
-import io.netty.buffer.ByteBufAllocator;
 import org.apache.arrow.memory.*;
 import org.apache.log4j.Logger;
 
-public class WrapperAllocator extends RootAllocator {
-    final static Logger logger = Logger.getLogger(WrapperAllocator.class);
+public class TracerAllocator extends RootAllocator {
+    final static Logger logger = Logger.getLogger(TracerAllocator.class);
 
-
-    public WrapperAllocator(final long limit) {
+    public TracerAllocator(final long limit) {
         super(limit);
     }
 
-    public WrapperAllocator(final AllocationListener listener, final long limit) {
+    public TracerAllocator(final AllocationListener listener, final long limit) {
         super(listener, limit);
     }
 
     @Override
     public ArrowBuf buffer(int i) {
-        logger.debug(" xxx buffer(int i) i = " + i);
-        return super.buffer(i);
+        long s = System.nanoTime();
+        ArrowBuf ret = super.buffer(i);
+        long e = System.nanoTime();
+        logger.debug(" buffer(int " + i + " ) took " + Utils.commaLongNumber(e-s) + " nanosec | plot " + (e-s));
+        return ret;
     }
 
     @Override
     public ArrowBuf buffer(int i, BufferManager bufferManager) {
-        logger.debug(" xxx buffer(int i, BufferManager bufferManager) i = " + i +  " bufferManager " + bufferManager);
-        return super.buffer(i, bufferManager);
+        long s = System.nanoTime();
+        ArrowBuf ret = super.buffer(i, bufferManager);
+        long e = System.nanoTime();
+        logger.debug(" buffer(int " + i + " , BufferManager " + bufferManager +" ) took " + Utils.commaLongNumber(e-s) + " nanosec | plot " + (e-s));
+        return ret;
     }
 
     @Override
     public ArrowByteBufAllocator getAsByteBufAllocator() {
-        logger.debug(" xxx getAsByteBufAllocator");
+        //called
         return super.getAsByteBufAllocator();
     }
 
@@ -110,15 +114,17 @@ public class WrapperAllocator extends RootAllocator {
 
     @Override
     public ArrowBuf getEmpty() {
+        //called
         ArrowBuf ret = super.getEmpty();
-        logger.debug(" xxx getEmpty " + ret);
+        //logger.debug(" xxx getEmpty " + ret);
         return ret;
     }
 
     @Override
     public String getName() {
+        //called
         String ret = super.getName();
-        logger.debug(" xxx getName " + ret);
+        //logger.debug(" xxx getName " + ret);
         return ret;
     }
 
@@ -138,7 +144,7 @@ public class WrapperAllocator extends RootAllocator {
 
     @Override
     public void assertOpen() {
-        logger.debug(" xxx assertOpen");
+        //called
         super.assertOpen();
     }
 }
