@@ -37,9 +37,8 @@ public class Main {
             if(Configuration.warmup) {
                 ExecuteTest warmup = new ExecuteTest();
                 warmup.runTest(list);
-                logger.info("warm-up run finished, runnign GC now...");
-                System.gc();
-                Thread.sleep(1000);
+                logger.info("warm-up run finished, running GC now...");
+                RunGC.getInstance().runGC();
             }
             logger.info("starting the test run");
             ExecuteTest testRun = new ExecuteTest();
