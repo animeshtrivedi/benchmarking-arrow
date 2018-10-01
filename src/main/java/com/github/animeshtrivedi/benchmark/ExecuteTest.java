@@ -78,6 +78,7 @@ public class ExecuteTest {
                     logger.info("...\t finished [" + i + "] ");
                     ops[i] = tempArr[i];
                 }
+                RunGC.getInstance().runGC();
             } else {
                 throw new Exception("Illegal test name: " + Configuration.testName);
             }

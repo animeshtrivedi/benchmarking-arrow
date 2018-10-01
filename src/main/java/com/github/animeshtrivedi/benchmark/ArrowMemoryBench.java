@@ -62,7 +62,9 @@ public class ArrowMemoryBench extends BenchmarkResults {
             //TODO: somehow this is the key to move the performance form ~100 Gbps to 150+ Gbps on 16 cores
             // I don't know running GC here has a different effect than running in the start and end of
             // ExecuteTest framework. Also, here it runs synchronously.
-            RunGC.getInstance().runGC();
+            // For now the problem is gone with large enough young generation and G1GC - if we get time we
+            // might return to it.
+            //RunGC.getInstance().runGC();
 
             if(Configuration.debug) {
                 ArrowReaderDebug tmp = new ArrowReaderDebug();
