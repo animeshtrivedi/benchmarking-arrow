@@ -39,7 +39,7 @@ public class ParseOptions {
         options.addOption("s", "size", true, "size for binary payload");
         options.addOption("n", "name", true, "int, or binary");
         options.addOption("c", "nulCols", true, "number of columns");
-        options.addOption("g", "groupSize", true, "row group size (stepping) in Arrow");
+        options.addOption("g", "rowGroupCount", true, "number of rows in a Arrow block");
         options.addOption("d", "debug", false, "debug mode");
         options.addOption("x", "warmup run", false, "do a warm-up");
         options.addOption("v", "verbose", false, "show some additional printouts");
@@ -47,7 +47,8 @@ public class ParseOptions {
         options.addOption("a", "on vs offheap", false, "-a enables offheap direct buffers, otherwise default is on-heap byte[]");
         options.addOption("b", "run gc", false, "-b enables running GC whenever sensible");
         options.addOption("e", "use holder", false, "-c enables the user of the holder API in arrow");
-        //a, b, c, d, e, [f], g, h, i, [j], [k], [l], [m], n, o, p, [q], r, s, t, [u], v, w, x, [y], [z],
+        options.addOption("j", "blockSizeInBytes", true, "Arrow block size in bytes");
+        //a, b, c, d, e, [f], g, h, i, j, [k], [l], [m], n, o, p, [q], r, s, t, [u], v, w, x, [y], [z],
     }
 
     public void show_help() {
@@ -124,13 +125,23 @@ public class ParseOptions {
                 Configuration.numCols = Integer.parseInt(cmd.getOptionValue("c").trim());
             }
             if (cmd.hasOption("g")) {
-                Configuration.stepping = Integer.parseInt(cmd.getOptionValue("g").trim());
+                Configuration.arrowBlockSizeInRows = Integer.parseInt(cmd.getOptionValue("g").trim());
             }
-
+            if (cmd.hasOption("j")) {
+                Configuration.arrowBlockSizeInBytes = Integer.parseInt(cmd.getOptionValue("j").trim());
+            }
         } catch (ParseException e) {
             System.err.println("Failed to parse command line properties" + e);
             show_help();
             System.exit(-1);
+        }
+        if(Configuration.arrowBlockSizeInBytes != -1 && Configuration.arrowBlockSizeInRows != -1){
+            //both are set
+            System.err.println("Please only set one of -g or -j, not both ");
+        }
+        if(Configuration.arrowBlockSizeInBytes == -1 && Configuration.arrowBlockSizeInRows == -1){
+            //none of them are set, we pick one by default that is - based on the rows
+            Configuration.arrowBlockSizeInRows = 1000;
         }
     }
 }

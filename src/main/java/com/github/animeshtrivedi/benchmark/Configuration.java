@@ -54,7 +54,10 @@ public class Configuration {
     public static int numCols = 1;
     public static long rowsPerThread = 1000;
     public static int binSize = 1024;
-    public static int stepping = 1000;
+    //only one of them is active at a time, they are initialized in the ParseOptions
+    public static int arrowBlockSizeInRows = -1;
+    public static int arrowBlockSizeInBytes = -1;
+
     public static int type = GeneratorFactory.INT_GENERATOR;
 
     public static boolean debug = false;
