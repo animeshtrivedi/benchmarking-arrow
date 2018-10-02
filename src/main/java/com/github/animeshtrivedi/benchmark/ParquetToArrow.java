@@ -40,10 +40,7 @@ import org.apache.parquet.io.api.Converter;
 import org.apache.parquet.io.api.GroupConverter;
 import org.apache.parquet.io.api.PrimitiveConverter;
 import org.apache.parquet.schema.MessageType;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.nio.channels.WritableByteChannel;
 import java.util.List;
 
@@ -51,24 +48,24 @@ import java.util.List;
 public class ParquetToArrow extends BenchmarkResults {
     final static Logger logger = Logger.getLogger(ParquetToArrow.class);
     // parquet objects
-    private org.apache.hadoop.conf.Configuration conf;
-    private MessageType parquetSchema;
-    private ParquetFileReader parquetFileReader;
-    private ParquetMetadata parquetFooter;
+    protected org.apache.hadoop.conf.Configuration conf;
+    protected MessageType parquetSchema;
+    protected ParquetFileReader parquetFileReader;
+    protected ParquetMetadata parquetFooter;
 
     // arrow objects
-    private Schema arrowSchema;
-    private VectorSchemaRoot arrowVectorSchemaRoot;
-    private ArrowFileWriter arrowFileWriter;
-    private RootAllocator ra;
+    protected Schema arrowSchema;
+    protected VectorSchemaRoot arrowVectorSchemaRoot;
+    protected ArrowFileWriter arrowFileWriter;
+    protected RootAllocator ra;
 
     // read,write channel
-    private WritableByteChannel wchannel;
+    protected WritableByteChannel wchannel;
 
-    private class DumpConverter extends PrimitiveConverter {
+    protected class DumpConverter extends PrimitiveConverter {
     }
 
-    private class DumpGroupConverter extends GroupConverter {
+    protected class DumpGroupConverter extends GroupConverter {
         @Override
         public final Converter getConverter(int i) {
             return new DumpConverter();
