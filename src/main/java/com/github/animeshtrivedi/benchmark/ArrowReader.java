@@ -141,7 +141,6 @@ public class ArrowReader extends BenchmarkResults {
             Long s2 = System.nanoTime();
             // TODO: what is this size?
             int size = arrowBlocks.size();
-            logger.debug("number of arrow block are : " + size);
             this.timestamps = new long[size];
             for (int i = 0; i < size; i++) {
                 this.timestamps[i] = System.nanoTime();
