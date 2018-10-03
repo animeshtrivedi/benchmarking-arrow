@@ -10,7 +10,8 @@ public class ArrowHolderReader extends ArrowReader {
     NullableBigIntHolder longHolder;
     NullableVarBinaryHolder binHolder;
 
-    public ArrowHolderReader() {
+    protected ArrowHolderReader() {
+        super();
         this.f4Holder = new NullableFloat4Holder();
         this.f8Holder = new NullableFloat8Holder();
         this.intHolder = new NullableIntHolder();

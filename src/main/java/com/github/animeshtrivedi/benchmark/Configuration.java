@@ -60,7 +60,6 @@ public class Configuration {
 
     public static int type = GeneratorFactory.INT_GENERATOR;
 
-    public static boolean debug = false;
     public static boolean warmup = false;
 
     public static boolean verbose = false;

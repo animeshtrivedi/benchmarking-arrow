@@ -70,22 +70,7 @@ public class ArrowMemoryBench extends BenchmarkResults {
             // For now the problem is gone with large enough young generation and G1GC - if we get time we
             // might return to it.
             //RunGC.getInstance().runGC();
-
-            if(Configuration.debug) {
-                ArrowReaderDebug tmp = new ArrowReaderDebug();
-                tmp.init(cx);
-                this.rx = tmp;
-            } else {
-                ArrowReader tmp;
-                if(Configuration.useHolder) {
-                     tmp = new ArrowHolderReader();
-                }else {
-                    tmp = new ArrowReader();
-                }
-                tmp.init(cx);
-                this.rx = tmp;
-            }
-
+            this.rx  = ArrowReader.getArrowReaderObject().init(this.cx);
         } catch (Exception e) {
             e.printStackTrace();
         }

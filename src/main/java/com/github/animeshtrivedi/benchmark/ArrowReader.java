@@ -42,7 +42,16 @@ public class ArrowReader extends BenchmarkResults {
     private BufferAllocator allocator;
     private long timestamps[];
 
-    public void init(String fileName) throws Exception {
+    protected ArrowReader(){}
+
+    public static ArrowReader getArrowReaderObject(){
+        if(com.github.animeshtrivedi.benchmark.Configuration.useHolder)
+            return new ArrowHolderReader();
+        else
+            return new ArrowReader();
+    }
+
+    public ArrowReader init(String fileName) throws Exception {
         Configuration conf = new Configuration();
         Path path = new Path(fileName);
         FileSystem fileSystem = path.getFileSystem(conf);
@@ -50,11 +59,13 @@ public class ArrowReader extends BenchmarkResults {
         FileStatus status = fileSystem.getFileStatus(path);
         this.rchannel = new HDFSSeekableByteChannel(instream, status.getLen());
         _init();
+        return this;
     }
 
-    public void init(SeekableByteChannel rchannel) throws Exception {
+    public ArrowReader init(SeekableByteChannel rchannel) throws Exception {
         this.rchannel = rchannel;
         _init();
+        return this;
     }
 
     private void _init() throws Exception {

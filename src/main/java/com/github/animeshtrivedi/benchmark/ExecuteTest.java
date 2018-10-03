@@ -54,7 +54,7 @@ public class ExecuteTest {
                 }
             } else if (Configuration.testName.compareToIgnoreCase("ArrowRead") == 0) {
                 for (int i = 0; i < Configuration.parallel; i++) {
-                    ArrowReaderDebug temp = new ArrowReaderDebug();
+                    ArrowReader temp = ArrowReader.getArrowReaderObject();
                     temp.init(list[i]._1());
                     ops[i] = temp;
                 }
