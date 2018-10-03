@@ -146,6 +146,62 @@ public class ArrowReader extends BenchmarkResults {
         }
     }
 
+    private void consumeGeneric() throws Exception {
+        /* read all the fields */
+        int numCols = fieldVector.size();
+        for (int j = 0; j < numCols; j++) {
+            FieldVector fv = fieldVector.get(j);
+            switch (fv.getMinorType()) {
+                case INT:
+                    consumeInt4((IntVector) fv);
+                    break;
+                case BIGINT:
+                    consumeBigInt((BigIntVector) fv);
+                    break;
+                case FLOAT4:
+                    consumeFloat4((Float4Vector) fv);
+                    break;
+                case FLOAT8:
+                    consumeFloat8((Float8Vector) fv);
+                    break;
+                case VARBINARY:
+                    consumeBinary((VarBinaryVector) fv);
+                    break;
+                default:
+                    throw new Exception("Unknown minor type: " + fv.getMinorType());
+            }
+        }
+    }
+
+    private void consumeUnRolledStoreSales() throws Exception {
+        consumeInt4((IntVector) fieldVector.get(0));
+        consumeInt4((IntVector) fieldVector.get(1));
+        consumeInt4((IntVector) fieldVector.get(2));
+        consumeInt4((IntVector) fieldVector.get(3));
+        consumeInt4((IntVector) fieldVector.get(4));
+        consumeInt4((IntVector) fieldVector.get(5));
+        consumeInt4((IntVector) fieldVector.get(6));
+        consumeInt4((IntVector) fieldVector.get(7));
+        consumeInt4((IntVector) fieldVector.get(8));
+
+        consumeBigInt((BigIntVector) fieldVector.get(9));
+
+        consumeInt4((IntVector) fieldVector.get(10));
+
+        consumeFloat8((Float8Vector) fieldVector.get(11));
+        consumeFloat8((Float8Vector) fieldVector.get(12));
+        consumeFloat8((Float8Vector) fieldVector.get(13));
+        consumeFloat8((Float8Vector) fieldVector.get(14));
+        consumeFloat8((Float8Vector) fieldVector.get(15));
+        consumeFloat8((Float8Vector) fieldVector.get(16));
+        consumeFloat8((Float8Vector) fieldVector.get(17));
+        consumeFloat8((Float8Vector) fieldVector.get(18));
+        consumeFloat8((Float8Vector) fieldVector.get(19));
+        consumeFloat8((Float8Vector) fieldVector.get(20));
+        consumeFloat8((Float8Vector) fieldVector.get(21));
+        consumeFloat8((Float8Vector) fieldVector.get(22));
+    }
+
     @Override
     final public void run() {
         try {
@@ -160,30 +216,8 @@ public class ArrowReader extends BenchmarkResults {
                     throw new IOException("Expected to read record batch");
                 }
                 this.totalRows += root.getRowCount();
-                /* read all the fields */
-                int numCols = fieldVector.size();
-                for (int j = 0; j < numCols; j++) {
-                    FieldVector fv = fieldVector.get(j);
-                    switch (fv.getMinorType()) {
-                        case INT:
-                            consumeInt4((IntVector) fv);
-                            break;
-                        case BIGINT:
-                            consumeBigInt((BigIntVector) fv);
-                            break;
-                        case FLOAT4:
-                            consumeFloat4((Float4Vector) fv);
-                            break;
-                        case FLOAT8:
-                            consumeFloat8((Float8Vector) fv);
-                            break;
-                        case VARBINARY:
-                            consumeBinary((VarBinaryVector) fv);
-                            break;
-                        default:
-                            throw new Exception("Unknown minor type: " + fv.getMinorType());
-                    }
-                }
+                consumeGeneric();
+                //consumeUnRolledStoreSales();
                 this.timestamps[i] = System.nanoTime() - this.timestamps[i];
             }
             long s3 = System.nanoTime();
