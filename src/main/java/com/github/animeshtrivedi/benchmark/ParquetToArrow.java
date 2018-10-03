@@ -41,6 +41,7 @@ import org.apache.parquet.io.api.GroupConverter;
 import org.apache.parquet.io.api.PrimitiveConverter;
 import org.apache.parquet.schema.MessageType;
 
+import java.io.IOException;
 import java.nio.channels.WritableByteChannel;
 import java.util.List;
 
@@ -52,15 +53,23 @@ public class ParquetToArrow extends BenchmarkResults {
     protected MessageType parquetSchema;
     protected ParquetFileReader parquetFileReader;
     protected ParquetMetadata parquetFooter;
+    protected ColumnReader readers[];
+    protected int maxColumns;
+    protected List<ColumnDescriptor> colDesc;
 
     // arrow objects
     protected Schema arrowSchema;
     protected VectorSchemaRoot arrowVectorSchemaRoot;
     protected ArrowFileWriter arrowFileWriter;
     protected RootAllocator ra;
+    protected List<FieldVector> fieldVectors;
+
 
     // read,write channel
     protected WritableByteChannel wchannel;
+
+    //stats
+    long batchNumbers;
 
     protected class DumpConverter extends PrimitiveConverter {
     }
@@ -87,6 +96,7 @@ public class ParquetToArrow extends BenchmarkResults {
         // (ii) what other options are there for RootAllocator
         this.ra = new RootAllocator(Integer.MAX_VALUE);
         this.wchannel = null;
+        this.batchNumbers = 0;
     }
 
     private Path _setParquetInput(String inputParquetFileName) throws Exception {
@@ -102,6 +112,9 @@ public class ParquetToArrow extends BenchmarkResults {
                 parquetFilePath,
                 this.parquetFooter.getBlocks(),
                 this.parquetSchema.getColumns());
+        this.maxColumns = parquetSchema.getColumns().size();
+        this.readers = new ColumnReader[this.maxColumns];
+        this.colDesc = parquetSchema.getColumns();
         return parquetFilePath;
     }
 
@@ -125,6 +138,7 @@ public class ParquetToArrow extends BenchmarkResults {
         this.arrowFileWriter = new ArrowFileWriter(this.arrowVectorSchemaRoot,
                 provider,
                 this.wchannel);
+        this.fieldVectors = this.arrowVectorSchemaRoot.getFieldVectors();
     }
 
     private String convertParquetToArrowFileName(Path parquetNamePath){
@@ -194,79 +208,21 @@ public class ParquetToArrow extends BenchmarkResults {
         this.wchannel = new HDFSWritableByteChannel(arrowFullPath);
     }
 
-    public void run() {
-        try {
-            long start = System.nanoTime();
-            PageReadStore pageReadStore = null;
-            List<ColumnDescriptor> colDesc = parquetSchema.getColumns();
-            List<FieldVector> fieldVectors = this.arrowVectorSchemaRoot.getFieldVectors();
-            int size = colDesc.size();
-            DumpGroupConverter conv = new DumpGroupConverter();
-            this.arrowFileWriter.start();
-            pageReadStore = parquetFileReader.readNextRowGroup();
-            while (pageReadStore != null) {
-                ColumnReadStoreImpl colReader = new ColumnReadStoreImpl(pageReadStore, conv,
-                        this.parquetSchema, this.parquetFooter.getFileMetaData().getCreatedBy());
-                if (pageReadStore.getRowCount() > Integer.MAX_VALUE)
-                    throw new Exception(" More than Integer.MAX_VALUE is not supported " + pageReadStore.getRowCount());
-                int rows = (int) pageReadStore.getRowCount();
-                this.totalRows += rows;
-                // this batch of Arrow contains these many records
-                this.arrowVectorSchemaRoot.setRowCount(rows);
-                int i = 0;
-                while (i < size) {
-                    ColumnDescriptor col = colDesc.get(i);
-                    switch (col.getType()) {
-                        case INT32:
-                            writeIntColumn(colReader.getColumnReader(col),
-                                    col.getMaxDefinitionLevel(),
-                                    fieldVectors.get(i),
-                                    rows);
-                            break;
-
-                        case INT64:
-                            writeLongColumn(colReader.getColumnReader(col),
-                                    col.getMaxDefinitionLevel(),
-                                    fieldVectors.get(i),
-                                    rows);
-                            break;
-
-                        case DOUBLE:
-                            writeDoubleColumn(colReader.getColumnReader(col),
-                                    col.getMaxDefinitionLevel(),
-                                    fieldVectors.get(i),
-                                    rows);
-                            break;
-
-                        case BINARY:
-                            writeBinaryColumn(colReader.getColumnReader(col),
-                                    col.getMaxDefinitionLevel(),
-                                    fieldVectors.get(i),
-                                    rows);
-                            break;
-
-                        default:
-                            throw new Exception(" NYI " + col.getType());
-                    }
-                    i += 1;
-                }
-                pageReadStore = parquetFileReader.readNextRowGroup();
-                this.arrowFileWriter.writeBatch();
-            }
-            this.arrowFileWriter.end();
-            this.arrowFileWriter.close();
-            this.runtimeInNS = System.nanoTime() - start;
-        } catch (Exception e) {
-            e.printStackTrace();
+    private void sealAndWrite(int rows) throws IOException {
+        //flush and reset
+        for (int k = 0; k < this.maxColumns; k++) {
+            // for all columns
+            this.arrowVectorSchemaRoot.getFieldVectors().get(k).setValueCount(rows);
         }
+        this.arrowVectorSchemaRoot.setRowCount(rows);
+        this.arrowFileWriter.writeBatch();
+        this.batchNumbers++;
     }
 
-    private void writeIntColumn(ColumnReader creader, int dmax, FieldVector fieldVector, int rows) throws Exception {
-        IntVector intVector = (IntVector) fieldVector;
-        intVector.setInitialCapacity(rows);
-        intVector.allocateNew();
 
-        for(int i = 0; i < rows; i++) {
+    private void writeIntColumn(ColumnReader creader, int dmax, FieldVector fieldVector, int startIndex, int rows) throws Exception {
+        IntVector intVector = (IntVector) fieldVector;
+        for(int i = startIndex; i < (startIndex+rows); i++) {
             if(creader.getCurrentDefinitionLevel() == dmax){
                 intVector.setSafe(i, 1, creader.getInteger());
                 this.intCount++;
@@ -275,15 +231,12 @@ public class ParquetToArrow extends BenchmarkResults {
             }
             creader.consume();
         }
-        intVector.setValueCount(rows);
     }
 
-    private void writeLongColumn(ColumnReader creader, int dmax, FieldVector fieldVector, int rows) throws Exception {
-        BigIntVector bigIntVector = (BigIntVector) fieldVector;
-        bigIntVector.setInitialCapacity(rows);
-        bigIntVector.allocateNew();
 
-        for(int i = 0; i < rows; i++) {
+    private void writeLongColumn(ColumnReader creader, int dmax, FieldVector fieldVector, int startIndex, int rows) throws Exception {
+        BigIntVector bigIntVector = (BigIntVector) fieldVector;
+        for(int i = startIndex; i < (startIndex+rows); i++) {
             if(creader.getCurrentDefinitionLevel() == dmax){
                 bigIntVector.setSafe(i, 1, creader.getLong());
                 this.longCount++;
@@ -292,15 +245,11 @@ public class ParquetToArrow extends BenchmarkResults {
             }
             creader.consume();
         }
-        bigIntVector.setValueCount(rows);
     }
 
-    private void writeDoubleColumn(ColumnReader creader, int dmax, FieldVector fieldVector, int rows) throws Exception {
+    private void writeDoubleColumn(ColumnReader creader, int dmax, FieldVector fieldVector, int startIndex, int rows) throws Exception {
         Float8Vector float8Vector  = (Float8Vector) fieldVector;
-        float8Vector.setInitialCapacity((int) rows);
-        float8Vector.allocateNew();
-
-        for(int i = 0; i < rows; i++) {
+        for(int i = startIndex; i < (startIndex+rows); i++) {
             if(creader.getCurrentDefinitionLevel() == dmax){
                 float8Vector.setSafe(i, 1, creader.getDouble());
                 this.float8Count++;
@@ -309,15 +258,11 @@ public class ParquetToArrow extends BenchmarkResults {
             }
             creader.consume();
         }
-        float8Vector.setValueCount(rows);
     }
 
-    private void writeBinaryColumn(ColumnReader creader, int dmax, FieldVector fieldVector, int rows) throws Exception {
+    private void writeBinaryColumn(ColumnReader creader, int dmax, FieldVector fieldVector, int startIndex, int rows) throws Exception {
         VarBinaryVector varBinaryVector  = (VarBinaryVector) fieldVector;
-        varBinaryVector.setInitialCapacity((int) rows);
-        varBinaryVector.allocateNew();
-
-        for(int i = 0; i < rows; i++) {
+        for(int i = startIndex; i < (startIndex+rows); i++) {
             if(creader.getCurrentDefinitionLevel() == dmax){
                 byte[] data = creader.getBinary().getBytes();
                 varBinaryVector.setIndexDefined(i);
@@ -330,6 +275,181 @@ public class ParquetToArrow extends BenchmarkResults {
             }
             creader.consume();
         }
-        varBinaryVector.setValueCount(rows);
     }
+
+    private int loadNextParquetBatch() throws IOException {
+        int newRows = 0;
+        PageReadStore pageReadStore = parquetFileReader.readNextRowGroup();
+        if(pageReadStore !=null){
+            ColumnReadStoreImpl colReader = new ColumnReadStoreImpl(pageReadStore, new DumpGroupConverter(),
+                    this.parquetSchema, this.parquetFooter.getFileMetaData().getCreatedBy());
+            if (pageReadStore.getRowCount() > Integer.MAX_VALUE)
+                throw new IOException(" More than Integer.MAX_VALUE is not supported " + pageReadStore.getRowCount());
+            newRows = (int) pageReadStore.getRowCount();
+            List<ColumnDescriptor> colDesc = parquetSchema.getColumns();
+            //initialize all the new readers
+            for (int k = 0; k < maxColumns; k++) {
+                readers[k] = colReader.getColumnReader(colDesc.get(k));
+            }
+        }
+        return newRows;
+    }
+
+    private int consumeRows(int startOffset, int rows) throws Exception {
+        int bufferedSize = 0;
+        //consume parquet rows and return the arrow buffer size
+        for (int k = 0; k < this.maxColumns; k++) {
+            //consume target rows in all columns
+            ColumnDescriptor col = this.colDesc.get(k);
+            switch (col.getType()) {
+                case INT32:
+                    writeIntColumn(readers[k],
+                            col.getMaxDefinitionLevel(),
+                            this.fieldVectors.get(k),
+                            startOffset,
+                            rows);
+                    break;
+
+                case INT64:
+                    writeLongColumn(this.readers[k],
+                            col.getMaxDefinitionLevel(),
+                            this.fieldVectors.get(k),
+                            startOffset,
+                            rows);
+                    break;
+
+                case DOUBLE:
+                    writeDoubleColumn(this.readers[k],
+                            col.getMaxDefinitionLevel(),
+                            this.fieldVectors.get(k),
+                            startOffset,
+                            rows);
+                    break;
+
+                case BINARY:
+                    writeBinaryColumn(this.readers[k],
+                            col.getMaxDefinitionLevel(),
+                            this.fieldVectors.get(k),
+                            startOffset,
+                            rows);
+                    break;
+
+                default:
+                    throw new Exception(" NYI " + col.getType());
+            }
+            //+1
+            this.fieldVectors.get(k).setValueCount(startOffset + rows);
+            bufferedSize+=this.fieldVectors.get(k).getBufferSize();
+        }
+        return bufferedSize;
+    }
+
+    public void run(){
+        StringBuilder build = new StringBuilder();
+        if(Configuration.arrowBlockSizeInBytes == -1 && Configuration.arrowBlockSizeInRows == -1){
+            build.append("Running in the default parquet == arrow batch size ");
+            runSameAsParquet();
+        } else {
+            if(Configuration.arrowBlockSizeInRows > 0){
+                build.append("Running in the row count mode, with the batch count of " + Configuration.arrowBlockSizeInRows + " rows");
+                runWithCount();
+            } else {
+                build.append("Running in the size mode, with the batch size of " + Configuration.arrowBlockSizeInBytes + " bytes");
+                runWithSize();
+            }
+        }
+        build.append(", making " + this.batchNumbers + " batches");
+        logger.info(build.toString());
+    }
+
+    private void runSameAsParquet() {
+        try {
+            this.arrowFileWriter.start();
+            long start = System.nanoTime();
+            int newRows = loadNextParquetBatch();
+            while(newRows > 0) {
+                this.totalRows += newRows;
+                // this batch of Arrow contains these many records
+                consumeRows(0, newRows);
+                sealAndWrite(newRows);
+                newRows = loadNextParquetBatch();
+            }
+            this.arrowFileWriter.end();
+            this.arrowFileWriter.close();
+            this.runtimeInNS = System.nanoTime() - start;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void runWithSize(){
+        try {
+            int writeIndex = 0;
+            int bufferedSize = 0;
+            this.arrowFileWriter.start();
+            long start = System.nanoTime();
+            int newRows = loadNextParquetBatch();
+            while (newRows > 0){
+                // now we have the column loaded
+                this.totalRows += newRows;
+                //consume all the new rows
+                while (newRows > 0) {
+                    bufferedSize = consumeRows(writeIndex, 1);
+                    if (bufferedSize >= Configuration.arrowBlockSizeInBytes) {
+                        sealAndWrite(writeIndex);
+                        writeIndex = 0;
+                    }
+                    writeIndex += 1;
+                    newRows -= 1;
+                }
+                // we made sure that we are going to reload
+                newRows = loadNextParquetBatch();
+            }
+            if(writeIndex > 0) {
+                //flush the end segment
+                sealAndWrite(writeIndex);
+            }
+            this.arrowFileWriter.end();
+            this.arrowFileWriter.close();
+            this.runtimeInNS = System.nanoTime() - start;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void runWithCount(){
+        try {
+            int writeIndex = 0;
+            this.arrowFileWriter.start();
+            long start = System.nanoTime();
+            int newRows = loadNextParquetBatch();
+            while (newRows > 0) {
+                this.totalRows += newRows;
+                while (newRows > 0) {
+                    int target = Math.min(Configuration.arrowBlockSizeInRows - writeIndex, newRows);
+                    consumeRows(writeIndex, target); //ignore the return value
+                    //update wrote
+                    writeIndex += target;
+                    if (writeIndex == Configuration.arrowBlockSizeInRows) {
+                        sealAndWrite(writeIndex);
+                        //reset
+                        writeIndex = 0;
+                    }
+                    newRows -= target;
+                }
+                // we made sure that we are going to reload
+                newRows = loadNextParquetBatch();
+            }
+            if(writeIndex  > 0) {
+                //flush the end segment
+                sealAndWrite(writeIndex);
+            }
+            this.arrowFileWriter.end();
+            this.arrowFileWriter.close();
+            this.runtimeInNS = System.nanoTime() - start;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 }
