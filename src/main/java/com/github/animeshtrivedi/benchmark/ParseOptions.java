@@ -76,9 +76,6 @@ public class ParseOptions {
             if (cmd.hasOption("o")) {
                 Configuration.outputDir = cmd.getOptionValue("o").trim();
             }
-            if (cmd.hasOption("d")) {
-                Configuration.debug = true;
-            }
             if (cmd.hasOption("v")) {
                 Configuration.verbose = true;
             }
