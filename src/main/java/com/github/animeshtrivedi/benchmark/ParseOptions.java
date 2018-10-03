@@ -139,9 +139,5 @@ public class ParseOptions {
             //both are set
             System.err.println("Please only set one of -g or -j, not both ");
         }
-        if(Configuration.arrowBlockSizeInBytes == -1 && Configuration.arrowBlockSizeInRows == -1){
-            //none of them are set, we pick one by default that is - based on the rows
-            Configuration.arrowBlockSizeInRows = 1000;
-        }
     }
 }

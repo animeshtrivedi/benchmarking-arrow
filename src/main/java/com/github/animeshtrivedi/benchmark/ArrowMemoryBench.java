@@ -36,6 +36,11 @@ public class ArrowMemoryBench extends BenchmarkResults {
 
     public ArrowMemoryBench() throws Exception {
         _start();
+        if(Configuration.arrowBlockSizeInBytes == -1 && Configuration.arrowBlockSizeInRows == -1){
+            //none of them are set, we pick one by default that is - based on the rows
+            logger.warn("*** No batch size provided, setting the rows as 1000");
+            Configuration.arrowBlockSizeInRows = 1000;
+        }
         // in this constructor we generate data on the fly to benchmark
         this.generator = GeneratorFactory.generator(this.cx);
         this.tx = new Thread(this.generator);
