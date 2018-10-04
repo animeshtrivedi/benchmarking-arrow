@@ -45,10 +45,13 @@ public class ArrowReader extends BenchmarkResults {
     protected ArrowReader(){}
 
     public static ArrowReader getArrowReaderObject(){
-        if(com.github.animeshtrivedi.benchmark.Configuration.useHolder)
+        if(com.github.animeshtrivedi.benchmark.Configuration.useHolder) {
+            logger.info("Allocating a holder reader object");
             return new ArrowHolderReader();
-        else
+        } else {
+            logger.info("Allocating a direct reader object");
             return new ArrowReader();
+        }
     }
 
     public ArrowReader init(String fileName) throws Exception {
@@ -183,10 +186,13 @@ public class ArrowReader extends BenchmarkResults {
         consumeInt4((IntVector) fieldVector.get(6));
         consumeInt4((IntVector) fieldVector.get(7));
         consumeInt4((IntVector) fieldVector.get(8));
+        //9*4 = 36
 
         consumeBigInt((BigIntVector) fieldVector.get(9));
+        // 1 * 8 = 8
 
         consumeInt4((IntVector) fieldVector.get(10));
+        // 1 * 4 = 4
 
         consumeFloat8((Float8Vector) fieldVector.get(11));
         consumeFloat8((Float8Vector) fieldVector.get(12));
@@ -200,17 +206,16 @@ public class ArrowReader extends BenchmarkResults {
         consumeFloat8((Float8Vector) fieldVector.get(20));
         consumeFloat8((Float8Vector) fieldVector.get(21));
         consumeFloat8((Float8Vector) fieldVector.get(22));
+        // 12 * 8 = 96
+        // Total = 96 + 12 + 36 = 140 + 3 bitmap? = 143
     }
 
-    @Override
-    final public void run() {
+
+    private void runPlain() {
         try {
-            Long s2 = System.nanoTime();
-            // TODO: what is this size?
+            long s2 = System.nanoTime();
             int size = arrowBlocks.size();
-            this.timestamps = new long[size];
             for (int i = 0; i < size; i++) {
-                this.timestamps[i] = System.nanoTime();
                 ArrowBlock rbBlock = arrowBlocks.get(i);
                 if (!arrowFileReader.loadRecordBatch(rbBlock)) {
                     throw new IOException("Expected to read record batch");
@@ -218,16 +223,53 @@ public class ArrowReader extends BenchmarkResults {
                 this.totalRows += root.getRowCount();
                 consumeGeneric();
                 //consumeUnRolledStoreSales();
-                this.timestamps[i] = System.nanoTime() - this.timestamps[i];
             }
             long s3 = System.nanoTime();
             this.runtimeInNS = s3 - s2;
             arrowFileReader.close();
-            for (int i = 0; i < this.timestamps.length && com.github.animeshtrivedi.benchmark.Configuration.verbose; i++) {
-                System.err.println("\t runstamp: " + Utils.commaLongNumber(timestamps[i]) + " nanosec | plot " + timestamps[i]);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void runWithTrace() {
+        try {
+            Long s2 = System.nanoTime();
+            // TODO: what is this size?
+            int size = arrowBlocks.size();
+            System.err.println(" size " + size);
+            this.timestamps = new long[size*2];
+            for (int i = 0; i < size; i++) {
+                this.timestamps[i] = System.nanoTime();
+                ArrowBlock rbBlock = arrowBlocks.get(i);
+                if (!arrowFileReader.loadRecordBatch(rbBlock)) {
+                    throw new IOException("Expected to read record batch");
+                }
+                this.totalRows += root.getRowCount();
+                this.timestamps[size + i] = System.nanoTime();
+                this.timestamps[i] = this.timestamps[size + i] - this.timestamps[i];
+                consumeGeneric();
+                //consumeUnRolledStoreSales();
+                this.timestamps[size + i] = System.nanoTime() - this.timestamps[size + i];
+            }
+            long s3 = System.nanoTime();
+            this.runtimeInNS = s3 - s2;
+            arrowFileReader.close();
+            for (int i = 0; i < size; i++) {
+                System.err.println("\t runstamp: (load) " + Utils.commaLongNumber(timestamps[i]) + " + (consume) " + Utils.commaLongNumber(timestamps[size + i]) + " = " + Utils.commaLongNumber(timestamps[i] + timestamps[i + size]) + " nanosec");
+
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    @Override
+    final public void run(){
+        if(com.github.animeshtrivedi.benchmark.Configuration.verbose){
+            runWithTrace();
+        } else {
+            runPlain();
         }
     }
 }
