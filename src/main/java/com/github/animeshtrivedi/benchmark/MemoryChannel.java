@@ -19,7 +19,7 @@ package com.github.animeshtrivedi.benchmark;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.channels.WritableByteChannel;
 
-abstract class MemoryChannel implements WritableByteChannel, SeekableByteChannel {
+public abstract class MemoryChannel implements WritableByteChannel, SeekableByteChannel {
 
     static MemoryChannel getChannel(){
         //this.cx = new TimedMemoryChannel();
