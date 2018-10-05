@@ -30,14 +30,75 @@ public class ArrowReaderUnsafe extends ArrowReader {
 
     final public void consumeInt4(IntVector vector) {
         int valCount = vector.getValueCount();
-        long valididtyAddress = vector.getValidityBuffer().memoryAddress();
-        long dataAddress = vector.getDataBuffer().memoryAddress();
+        long valididtyAddress = vector.getValidityBufferAddress();
+        long dataAddress = vector.getDataBufferAddress();
         for(int i = 0; i < valCount; i++) {
             if (!isNull(valididtyAddress, i)) {
+                //if (vector.isSet(i) == 1) {
                 this.intCount++;
                 this.checksum += Platform.getInt(null, dataAddress);
             }
-            dataAddress += 4;
+            dataAddress += IntVector.TYPE_WIDTH;
         }
     }
+
+    protected void consumeBigInt(BigIntVector vector) {
+        int valCount = vector.getValueCount();
+        long valididtyAddress = vector.getValidityBufferAddress();
+        long dataAddress = vector.getDataBufferAddress();
+        for(int i = 0; i < valCount; i++) {
+            if (!isNull(valididtyAddress, i)) {
+                this.longCount++;
+                this.checksum += Platform.getLong(null, dataAddress);
+            }
+            dataAddress += BigIntVector.TYPE_WIDTH;
+        }
+    }
+
+    protected void consumeFloat4(Float4Vector vector) {
+        int valCount = vector.getValueCount();
+        long valididtyAddress = vector.getValidityBufferAddress();
+        long dataAddress = vector.getDataBufferAddress();
+        for(int i = 0; i < valCount; i++) {
+            if (!isNull(valididtyAddress, i)) {
+                this.float4Count++;
+                this.checksum += Platform.getFloat(null, dataAddress);
+            }
+            dataAddress += Float4Vector.TYPE_WIDTH;
+        }
+    }
+
+    protected void consumeFloat8(Float8Vector vector) {
+        int valCount = vector.getValueCount();
+        long valididtyAddress = vector.getValidityBufferAddress();
+        long dataAddress = vector.getDataBufferAddress();
+        for (int i = 0; i < valCount; i++) {
+            if (!isNull(valididtyAddress, i)) {
+                this.float8Count++;
+                this.checksum += Platform.getDouble(null, dataAddress);
+            }
+            dataAddress += Float8Vector.TYPE_WIDTH;
+        }
+    }
+
+    protected void consumeBinary(VarBinaryVector vector) {
+        //TODO: this is not tested yet
+        int valCount = vector.getValueCount();
+        long valididtyAddress = vector.getValidityBufferAddress();
+        long dataAddress = vector.getDataBufferAddress();
+        long offsetAddress = vector.getOffsetBufferAddress();
+        for (int i = 0; i < valCount; i++) {
+            if (!isNull(valididtyAddress, i)) {
+                int start = Platform.getInt(null, offsetAddress);
+                int length = Platform.getInt(null, offsetAddress + BaseVariableWidthVector.OFFSET_WIDTH) - start;
+                this.binaryCount++;
+                this.checksum += length;
+                this.binarySizeCount+=length;
+                //get binary play load from the data address
+                //this.valueBuffer.getBytes(start, byte[], 0, dataLength);
+            }
+            offsetAddress+=(BaseVariableWidthVector.OFFSET_WIDTH);
+        }
+    }
+
 }
