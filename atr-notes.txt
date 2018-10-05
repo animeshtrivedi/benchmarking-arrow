@@ -440,4 +440,125 @@ I am going to continue to performance investigation with this 12.75 configuratio
 Current situation   : -x code    : 15.46 Gbps
 Unsafe reader code  : -e unsafe  : 12.75 Gbps
 Arrow condition     : hardcoded  : 11.85 Gbps
+Holder API code                  : 9.89 Gbps
+(checks) enabled                 : 5.26 Gbps
 
+
+Notes for my own sanity:
+ONE: -ea seems to affect performance too much. With it is on, we are around 28.x Gbps for a single core, without
+it we are close to 40 Gbps. The peak performance remains the same around 170 Gbps, but everything else is pushed
+forward.
+TWO: multi-core performance scalability can only be done with G1GC GC
+THREE: disable condition checks using drill option
+FOUR: write your own unsafe reader, we have completed that now
+FIVE: for binary payload there is minimum difference between the holder and the unsafe API as expected because the
+copy is the main cost. The more objects you have to materialize, unsafe will become better. We can test it later
+for store_sales
+
+$unset JAVA_TOOL_OPTIONS; numactl -C 0-15 -m 0,1 java -XX:+UseG1GC -Xmn200G -Xmx256G -Ddrill.enable_unsafe_memory_access=true -cp ./4j/:./benchmark-arrow-1.0.jar:./dependency/* com.github.animeshtrivedi.benchmark.Main -t ArrowMemBench -p 16 -r 10000000 -c 1 -g 10000 -n binary -s 1024 -e unsafe
+Current performance for binary
+    holder  |   unsafe
+1c  37.90   |   37.33
+2c  67.39   |   66.13
+4c  90.41   |   97.66
+8c  101.35  |   101.63
+16c 171.11  |   171.88
+
+SIX: there seems to be some house-keeping work going on, as we give 4 cores to 2 thread case, performance improves. Why?
+
+
+Back to the integer investigation: The numbers above are regenerated again (without any JVM flags)
+(cmdline: numactl -C 8 -m 1 java -Xmn120G -Xmx256G -Ddrill.enable_unsafe_memory_access=false -cp ./4j/:./benchmark-arrow-1.0.jar:./dependency/* com.github.animeshtrivedi.benchmark.Main -t ArrowMemBench -p 1 -r 2000000000 -c 1 -g 1000000 -n int -e holder -a 2>&1 | tee log)
+
+Unsafe profile:
+    21.35%  java           perf-28173.map     [.] Lcom/github/animeshtrivedi/benchmark/ArrowReaderUnsafe;::isNull
+    21.31%  java           perf-28173.map     [.] Lcom/github/animeshtrivedi/benchmark/ArrowReaderUnsafe;::consumeInt4
+    16.34%  java           perf-28173.map     [.] Lio/netty/buffer/ArrowBuf;::setByte
+     8.26%  java           perf-28173.map     [.] Lcom/github/animeshtrivedi/benchmark/Platform;::getByte
+     6.30%  java           perf-28173.map     [.] Lcom/github/animeshtrivedi/benchmark/Platform;::getInt
+     4.30%  java           perf-28173.map     [.] Lio/netty/util/internal/PlatformDependent;::putByte
+     4.29%  java           perf-28173.map     [.] Lio/netty/buffer/ArrowBuf;::refCnt
+     2.09%  java           perf-28173.map     [.] Ljava/util/concurrent/atomic/AtomicInteger;::get
+     2.06%  java           perf-28173.map     [.] Lio/netty/buffer/ArrowBuf;::checkIndexD
+     1.91%  java           perf-28173.map     [.] Lio/netty/util/internal/PlatformDependent0;::putByte
+     1.52%  java           libjvm.so          [.] acl_CopyRight
+     1.19%  java           perf-28173.map     [.] Lio/netty/buffer/ArrowBuf;::capacity
+     1.05%  java           perf-28173.map     [.] Lorg/apache/arrow/vector/BitVectorHelper;::loadValidityBuffer
+     1.03%  java           perf-28173.map     [.] Lio/netty/buffer/ArrowBuf;::addr
+     0.86%  java           perf-28173.map     [.] Lio/netty/buffer/AbstractByteBuf;::ensureAccessible
+     0.73%  perf           [kernel.kallsyms]  [k] pmd_page_vaddr
+     0.72%  kworker/4:2    [kernel.kallsyms]  [k] radix_tree_tag_clear
+     0.66%  swapper        [kernel.kallsyms]  [k] need_update
+     0.65%  perf           [kernel.kallsyms]  [k] unmap_page_range
+     0.56%  cpufreqd       [kernel.kallsyms]  [k] mutex_unlock
+     0.27%  swapper        [kernel.kallsyms]  [k] _raw_spin_lock_irqsave
+     0.27%  kworker/u32:0  [kernel.kallsyms]  [k] find_busiest_group
+     0.23%  swapper        [kernel.kallsyms]  [k] __update_load_avg_se.isra.38
+     0.19%  swapper        [kernel.kallsyms]  [k] __slab_free
+     0.18%  java           perf-28173.map     [.] Lio/netty/buffer/PoolChunk;::updateParentsFree
+     0.18%  java           [kernel.kallsyms]  [k] hrtimer_active
+     0.17%  java           libjvm.so          [.] _ZN5State15_sub_Op_LShiftLEPK4Node
+     0.17%  java           perf-28173.map     [.] Lio/netty/buffer/ArrowBuf;::setLong
+     0.17%  java           [kernel.kallsyms]  [k] hash_futex
+     0.17%  java           perf-28173.map     [.] Lio/netty/util/internal/PlatformDependent;::putLong
+     0.17%  java           perf-28173.map     [.] Lio/netty/buffer/ArrowBuf;::chk
+     0.17%  java           [kernel.kallsyms]  [k] pick_next_entity
+
+
+-x MY profile:
+
+    42.48%  java           perf-28294.map     [.] Lcom/github/animeshtrivedi/arrow/ArrowIntReader;::isNull
+    28.66%  java           perf-28294.map     [.] Lcom/github/animeshtrivedi/arrow/ArrowIntReader;::consumeIntBatchDirectNull
+    10.64%  java           perf-28294.map     [.] Lcom/github/animeshtrivedi/benchmark/Platform;::getByte
+     8.30%  java           perf-28294.map     [.] Lcom/github/animeshtrivedi/benchmark/Platform;::getInt
+     3.29%  swapper        [kernel.kallsyms]  [k] poll_idle
+     0.78%  perf           [kernel.kallsyms]  [k] unmap_page_range
+     0.71%  kworker/4:0    [kernel.kallsyms]  [k] __slab_free
+     0.71%  swapper        [kernel.kallsyms]  [k] update_cfs_group
+     0.70%  cpufreqd       [kernel.kallsyms]  [k] mutex_unlock
+     0.61%  swapper        [kernel.kallsyms]  [k] __netif_schedule
+     0.50%  java           [kernel.kallsyms]  [k] free_pcppages_bulk
+     0.40%  java           libjvm.so          [.] acl_CopyRight
+     0.37%  swapper        [kernel.kallsyms]  [k] file_free_rcu
+     0.34%  java           [kernel.kallsyms]  [k] unmap_page_range
+     0.25%  htop           [kernel.kallsyms]  [k] first_online_pgdat
+     0.17%  java           [kernel.kallsyms]  [k] release_pages
+     0.17%  java           [kernel.kallsyms]  [k] free_unref_page_prepare.part.64
+     0.17%  java           [kernel.kallsyms]  [k] _vm_normal_page
+     0.16%  swapper        [kernel.kallsyms]  [k] menu_select
+     0.16%  java           [kernel.kallsyms]  [k] __mod_zone_page_state
+     0.10%  kworker/u34:0  [kernel.kallsyms]  [k] get_nr_dirty_inodes
+     0.10%  swapper        [kernel.kallsyms]  [k] __tick_nohz_idle_enter
+     0.07%  swapper        [kernel.kallsyms]  [k] __next_timer_interrupt
+     0.04%  swapper        [kernel.kallsyms]  [k] find_busiest_group
+     0.03%  htop           [kernel.kallsyms]  [k] put_dec_trunc8
+     0.02%  htop           [kernel.kallsyms]  [k] do_filp_open
+     0.02%  htop           [kernel.kallsyms]  [k] do_dentry_open
+     0.01%  htop           [kernel.kallsyms]  [k] number
+     0.01%  htop           [kernel.kallsyms]  [k] seq_put_decimal_ull
+     0.01%  htop           [kernel.kallsyms]  [k] strncpy_from_user
+     0.01%  swapper        [kernel.kallsyms]  [k] generic_smp_call_function_single_interrupt
+     0.00%  swapper        [kernel.kallsyms]  [k] flush_smp_call_function_queue
+     0.00%  swapper        [kernel.kallsyms]  [k] irq_work_run_list
+
+
+Q: is the memory allocation that is intefering? who is calling "setByte" and putLong?
+SEVEN: TracerAllocator was used, so we removed it. That pushed the performance to in ~13.5 Gbps range.
+
+
+
+So, with the allocation in the -x path, the performance drops to 9.6 Gbps, but the profile looks sensible:
+    40.90%  java           perf-28760.map     [.] Lcom/github/animeshtrivedi/arrow/ArrowIntReader;::isNull
+    28.87%  java           perf-28760.map     [.] Lcom/github/animeshtrivedi/arrow/ArrowIntReader;::consumeIntBatchDirectNullCheckWithAlloc
+    12.08%  java           perf-28760.map     [.] Lcom/github/animeshtrivedi/benchmark/Platform;::getByte
+     6.43%  java           perf-28760.map     [.] Lcom/github/animeshtrivedi/benchmark/Platform;::getInt
+     1.60%  java           libjvm.so          [.] acl_CopyRight
+     1.38%  swapper        [kernel.kallsyms]  [k] poll_idle
+     0.82%  kworker/4:0    [kernel.kallsyms]  [k] nfs_free_request
+     0.79%  perf           [kernel.kallsyms]  [k] cmpxchg_double_slab.isra.60
+     0.65%  cpufreqd       [kernel.kallsyms]  [k] memcpy
+
+SO what is going on?
+
+A quick check shows that there 2 unique buffers which are allocated in the path. Somehow the direct buffer
+acquired from the allocator vs me called ByteBuffer.allocDirect ...I don't know what is happening. 
