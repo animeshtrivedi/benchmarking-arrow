@@ -42,12 +42,13 @@ public class BinaryGenerator extends ArrowDataGenerator {
     }
 
     @Override
-    void fillBatch(int startIndex, int endIndex, FieldVector vector){
+    int fillBatch(int startIndex, int endIndex, FieldVector vector){
         VarBinaryVector binVector = (VarBinaryVector) vector;
         for (int i = startIndex; i < endIndex; i++) {
             binVector.setSafe(i, bin);
         }
         totalRows+=(endIndex - startIndex);
+        return (endIndex - startIndex);
     }
 
     @Override

@@ -18,6 +18,7 @@ package com.github.animeshtrivedi.generator;
 
 import com.github.animeshtrivedi.benchmark.Configuration;
 import com.github.animeshtrivedi.benchmark.DataInterface;
+import com.github.animeshtrivedi.benchmark.MemoryChannel;
 import com.google.common.collect.ImmutableList;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.FieldVector;
@@ -103,9 +104,9 @@ public abstract class ArrowDataGenerator implements DataInterface {
                 this.channel);
     }
 
-    abstract void fillBatch(int startIndex, int endIndex, FieldVector vector);
-    public void fillOne(int index, FieldVector vector){
-        this.fillBatch(index, index+1, vector);
+    abstract int fillBatch(int startIndex, int endIndex, FieldVector vector);
+    public int fillOne(int index, FieldVector vector){
+        return this.fillBatch(index, index+1, vector);
     }
 
     public void runWithRows(){
@@ -120,8 +121,8 @@ public abstract class ArrowDataGenerator implements DataInterface {
                     // for all columns
                     FieldVector fv = fieldVectors.get(colIdx);
                     fv.setInitialCapacity(now);
-                    fillBatch(0, now, fv);
-                    fv.setValueCount(now);
+                    int nonNullrows = fillBatch(0, now, fv);
+                    fv.setValueCount(nonNullrows);
                 }
                 // once all columns have been generated, write the batch out
                 this.arrowFileWriter.writeBatch();

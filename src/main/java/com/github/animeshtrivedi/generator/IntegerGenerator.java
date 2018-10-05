@@ -36,12 +36,16 @@ public class IntegerGenerator extends ArrowDataGenerator {
     }
 
     @Override
-    void fillBatch(int startIndex, int endIndex, FieldVector vector){
+    int fillBatch(int startIndex, int endIndex, FieldVector vector){
         IntVector intVector = (IntVector) vector;
         for (int i = startIndex; i < endIndex; i++) {
-            intVector.setSafe(i, 1, 42);
+            intVector.setSafe(i, 1, i);
         }
+        // for debugging mark one NULL
+        //intVector.setSafe(endIndex/2, 0, 0);
         this.totalInts+=(endIndex - startIndex);
+        //but we generated all integers
+        return (endIndex - startIndex);
     }
 
     public String toString() {
