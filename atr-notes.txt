@@ -150,4 +150,294 @@ local vs remote NUMA node traffic: https://www.spinics.net/lists/linux-perf-user
 
 
 
+**
+
+ArrowBuf has ReferenceCounter mechanism to release buffers:
+public boolean release(int decrement)
+
+
+Integer performance
+-----------------------------------------------------------------------
+Total bytes: 4000000000(3GiB) bandwidth 4.37 Gbps
+-----------------------------------------------------------------------
+atr@flex13:~/crail-deployment/arrow$ numactl -C 8 -m 1 java -Xmn120G -Xmx256G  -cp ./4j/:./benchmark-arrow-1.0.jar:./dependency/* com.github.animeshtrivedi.benchmark.Main -t ArrowMemBench -p 1 -r 1000000000 -c 1 -g 10000000 -n int -e  2>&1 | tee log
+
+** I have a semi working integer reader
+
+* Java mixed endinaess issuse with Arrow and Java ?
+
+
+numactl -C 8 -m 1 ./jvmenv.sh -Xmn120G -Xmx256G  -cp ./4j/:./benchmark-arrow-1.0.jar:./dependency/* com.github.animeshtrivedi.benchmark.Main -t ArrowMemBench -p 1 -r 1000000000 -c 1 -g 10000000 -n int -e  2>&1 | tee log
+Shoudl give you around 4.8 Gbps
+
+Also check the profile with 0 inline code
+
+--
+atr@flex13:~/crail-deployment/arrow$ numactl -C 8 -m 1 java -Xmn120G -Xmx256G  -cp ./4j/:./benchmark-arrow-1.0.jar:./dependency/* com.github.animeshtrivedi.benchmark.Main -t ArrowMemBench -p 1 -r 2000000000 -c 1 -g 10000000 -n int -e -x 2>&1 | tee log
+	 [0] totalRows: 0 || ints: 1000000000 , long 0 , float4 0 , double 0 , binary 0 binarySize 0 checksum 4999999500000000 || runtimeInNS 1,848,281,511 , totalBytesProcessed 4000000000 , bandwidth 17.31 Gbps.
+-----------------------------------------------------------------------
+Total bytes: 4000000000(3GiB) bandwidth 17.31 Gbps
+-----------------------------------------------------------------------
+
+
+% CPU profile of consumption with zero inlinng
+  22.59%  java           perf-21415.map      [.] Lio/netty/buffer/ArrowBuf;::refCnt                                                                     ▒
+  12.08%  java           perf-21415.map      [.] Lio/netty/buffer/ArrowBuf;::checkIndexD                                                                ▒
+   8.77%  java           perf-21415.map      [.] Lio/netty/buffer/AbstractByteBuf;::ensureAccessible                                                    ▒
+   7.96%  java           perf-21415.map      [.] Lio/netty/util/internal/PlatformDependent;::getInt                                                     ▒
+   6.92%  java           perf-21415.map      [.] Lio/netty/util/internal/PlatformDependent;::getByte                                                    ▒
+   5.69%  java           perf-21415.map      [.] Lcom/github/animeshtrivedi/benchmark/ArrowHolderReader;::consumeInt4                                   ▒
+   4.70%  java           perf-21415.map      [.] Lio/netty/buffer/ArrowBuf;::getByte                                                                    ▒
+   4.35%  java           perf-21415.map      [.] Ljava/util/concurrent/atomic/AtomicInteger;::get                                                       ▒
+   4.23%  java           perf-21415.map      [.] Lorg/apache/arrow/vector/IntVector;::get                                                               ▒
+   3.47%  java           perf-21415.map      [.] Lio/netty/buffer/ArrowBuf;::getInt                                                                     ▒
+   3.04%  java           perf-21415.map      [.] Lio/netty/util/internal/PlatformDependent0;::getInt                                                    ▒
+   2.76%  java           perf-21415.map      [.] Lorg/apache/arrow/vector/BaseFixedWidthVector;::isSet                                                  ▒
+   2.69%  java           perf-21415.map      [.] Lio/netty/buffer/ArrowBuf;::capacity                                                                   ▒
+   2.19%  java           perf-21415.map      [.] Lio/netty/util/internal/PlatformDependent0;::getByte                                                   ▒
+   1.92%  java           perf-21415.map      [.] Lio/netty/buffer/ArrowBuf;::chk                                                                        ▒
+   1.03%  java           perf-21415.map      [.] Lio/netty/buffer/ArrowBuf;::addr                                                                       ▒
+   0.71%  java           perf-21415.map      [.] Lio/netty/util/internal/PlatformDependent;::putByte                                                    ▒
+   0.57%  java           perf-21415.map      [.] Lio/netty/buffer/ArrowBuf;::setByte                                                                    ▒
+   0.53%  java           perf-21415.map      [.] Lio/netty/util/internal/PlatformDependent0;::putByte                                                   ▒
+   0.44%  perf           [kernel.kallsyms]   [k] __slab_free                                                                                            ▒
+   0.43%  perf           perf                [.] 0x000000000001e8f8                                                                                     ▒
+   0.37%  swapper        [kernel.kallsyms]   [k] find_next_bit                                                                                          ▒
+   0.36%  htop           [kernel.kallsyms]   [k] __radix_tree_lookup                                                                                    ▒
+   0.19%  java           libpthread-2.23.so  [.] pthread_getspecific                                                                                    ▒
+   0.13%  swapper        [kernel.kallsyms]   [k] find_busiest_group                                                                                     ▒
+   0.12%  kworker/15:2   [kernel.kallsyms]   [k] find_busiest_group                                                                                     ▒
+   0.11%  kworker/u32:0  [kernel.kallsyms]   [k] put_prev_entity                                                                                        ▒
+   0.11%  swapper        [kernel.kallsyms]   [k] ret_from_intr                                                                                          ▒
+   0.10%  java           libjvm.so           [.] _ZN7Matcher5xformEP4Nodei                                                                              ▒
+   0.10%  java           libjvm.so           [.] _ZN4UTF818convert_to_unicodeEPKcPti                                                                    ▒
+   0.10%  java           libjvm.so           [.] _ZN10LinearScan26is_precolored_cpu_intervalEPK8Interval                                                ▒
+   0.10%  java           libjvm.so           [.] _ZN19NullCheckEliminator15merge_state_forEP10BlockBeginP8ValueSet                                      ▒
+   0.10%  java           perf-21415.map      [.] Lio/netty/util/internal/PlatformDependent;::putLong                                                    ▒
+   0.10%  java           libjvm.so           [.] _ZN10MethodDataC1E12methodHandleiP6Thread                                                              ▒
+   0.10%  java           libjvm.so           [.] _ZN12PhaseChaitin10bias_colorER3LRGi                                                                   ▒
+   0.09%  java           libjvm.so           [.] _ZN7RegMask13clear_to_setsEi                                                                           ▒
+   0.09%  java           [kernel.kallsyms]   [k] timekeeping_update                                                                                     ▒
+   0.09%  java           perf-21415.map      [.] Lorg/apache/arrow/vector/BitVectorHelper;::loadValidityBuffer                                          ▒
+   0.09%  java           [unknown]           [k] 0xfffffe0000166000                                                                                     ▒
+   0.09%  swapper        [kernel.kallsyms]   [k] native_sched_clock                                                                                     ▒
+   0.08%  java           [kernel.kallsyms]   [k] do_syscall_64                                                                                          ▒
+   0.07%  swapper        [kernel.kallsyms]   [k] __tick_nohz_idle_enter                                                                                 ▒
+   0.06%  rcu_sched      [kernel.kallsyms]   [k] force_qs_rnp                                                                                           ▒
+   0.05%  kworker/10:2   [kernel.kallsyms]   [k] __lock_text_start                                                                                      ▒
+   0.04%  swapper        [kernel.kallsyms]   [k] lapic_next_deadline                                                                                    ▒
+
+
+This is mine:
+
+    58.39%  java           perf-19455.map     [.] Lcom/github/animeshtrivedi/arrow/ArrowIntReader;::consumeIntBatchDirect
+    28.12%  java           perf-19455.map     [.] Lcom/github/animeshtrivedi/benchmark/Platform;::getInt
+     7.01%  java           [kernel.kallsyms]  [k] cpu_load_update
+     2.03%  java           libjvm.so          [.] acl_CopyRight
+     1.02%  kworker/4:0    [kernel.kallsyms]  [k] nfs_unlock_request
+     0.89%  perf           [kernel.kallsyms]  [k] unmap_page_range
+     0.84%  perf           [kernel.kallsyms]  [k] iov_iter_fault_in_readable
+     0.77%  cpufreqd       [kernel.kallsyms]  [k] mutex_lock
+     0.33%  kworker/14:2   [kernel.kallsyms]  [k] __indirect_thunk_start
+     0.28%  swapper        [kernel.kallsyms]  [k] clear_buddies
+     0.13%  apache2        [kernel.kallsyms]  [k] idle_cpu
+     0.08%  swapper        [kernel.kallsyms]  [k] touch_softlockup_watchdog_sched
+     0.05%  sshd           [kernel.kallsyms]  [k] dequeue_entity
+     0.04%  swapper        [kernel.kallsyms]  [k] __schedule
+     0.01%  kworker/u33:2  [kernel.kallsyms]  [k] rcu_all_qs
+     0.01%  swapper        [kernel.kallsyms]  [k] irq_work_run_list
+     0.00%  swapper        [kernel.kallsyms]  [k] generic_smp_call_function_single_interrupt
+     0.00%  swapper        [kernel.kallsyms]  [k] idle_cpu
+     0.00%  perf           [kernel.kallsyms]  [k] remote_function
+
+
+
+----------------------------
+
+$numactl -C 8 -m 1 java -Xmn120G -Xmx256G -Ddrill.enable_unsafe_memory_access=true -cp ./4j/:./benchmark-arrow-1.0.jar:./dependency/* com.github.animeshtrivedi.benchmark.Main -t ArrowMemBench -p 1 -r 2000000000 -c 1 -g 1000000 -n int -e 2>&1 | tee log
+2018-10-05 11:01:22 20088 INFO  ExecuteTest:100 - ...test ends
+	 [0] totalRows: 2000000000 || ints: 2000000000 , long 0 , float4 0 , double 0 , binary 0 binarySize 0 checksum 999999000000000 || runtimeInNS 6,509,591,698 , totalBytesProcessed 8000000000 , bandwidth 9.83 Gbps.
+-----------------------------------------------------------------------
+Total bytes: 8000000000(7GiB) bandwidth 9.83 Gbps
+-----------------------------------------------------------------------
+
+Also - 1MB of block size is what is good!! (10 MB gives about 8.6 Gbps)
+
+
+
+In the optimized configuration: this is how the profile looks like:
+
+    18.89%  java           perf-22688.map     [.] Lio/netty/buffer/ArrowBuf;::getByte
+    17.15%  java           perf-22688.map     [.] Lio/netty/buffer/ArrowBuf;::getInt
+    10.81%  java           perf-22688.map     [.] Lio/netty/buffer/ArrowBuf;::addr
+     7.74%  java           perf-22688.map     [.] Lcom/github/animeshtrivedi/benchmark/ArrowHolderReader;::consumeInt4
+     7.38%  java           perf-22688.map     [.] Lio/netty/util/internal/PlatformDependent;::getInt
+     6.65%  java           perf-22688.map     [.] Lio/netty/util/internal/PlatformDependent0;::getByte
+     5.59%  java           perf-22688.map     [.] Lio/netty/util/internal/PlatformDependent;::getByte
+     5.02%  java           perf-22688.map     [.] Lorg/apache/arrow/vector/IntVector;::get
+     4.18%  java           perf-22688.map     [.] Lio/netty/buffer/ArrowBuf;::chk
+     4.12%  java           perf-22688.map     [.] Lio/netty/util/internal/PlatformDependent0;::getInt
+     3.84%  java           perf-22688.map     [.] Lorg/apache/arrow/vector/BaseFixedWidthVector;::isSet
+     1.82%  java           perf-22688.map     [.] Lio/netty/buffer/ArrowBuf;::setByte
+     1.01%  java           perf-22688.map     [.] Lio/netty/util/internal/PlatformDependent;::putByte
+     0.68%  java           perf-22688.map     [.] Lio/netty/util/internal/PlatformDependent0;::putByte
+
+     0.54%  perf           [kernel.kallsyms]  [k] _raw_spin_lock
+     0.47%  swapper        [kernel.kallsyms]  [k] memchr_inv
+     0.41%  ksoftirqd/1    [kernel.kallsyms]  [k] _raw_spin_lock
+     0.36%  apache2        [kernel.kallsyms]  [k] reweight_entity
+     0.34%  java           libjvm.so          [.] acl_CopyRight
+     0.29%  swapper        [kernel.kallsyms]  [k] __slab_free
+     0.23%  java           perf-22688.map     [.] Lorg/apache/arrow/vector/BitVectorHelper;::loadValidityBuffer
+     0.21%  java           perf-22688.map     [.] Lio/netty/buffer/ArrowBuf;::setLong
+     0.19%  java           [kernel.kallsyms]  [k] __mod_zone_page_state
+     0.15%  swapper        [kernel.kallsyms]  [k] handle_irq_event_percpu
+     0.13%  kworker/0:0    [kernel.kallsyms]  [k] kmem_cache_free
+     0.13%  sshd           [kernel.kallsyms]  [k] tcp_in_window
+     0.12%  java           perf-22688.map     [.] Lio/netty/util/internal/PlatformDependent0;::putLong
+     0.11%  java           perf-22688.map     [.] Lio/netty/buffer/ArrowBuf;::_setLong
+     0.11%  java           perf-22688.map     [.] Ljava/lang/String;::charAt
+     0.11%  java           libjvm.so          [.] JVM_IHashCode
+     0.11%  java           [kernel.kallsyms]  [k] wakeup_preempt_entity.isra.69
+     0.11%  java           libjvm.so          [.] _ZN12ciMethodData11bci_to_dataEiP8ciMethod
+     0.10%  java           libjvm.so          [.] _ZN8NodeHash16hash_find_insertEP4Node
+     0.10%  java           libjvm.so          [.] _ZN23PhaseAggressiveCoalesce13insert_copiesER7Matcher
+     0.10%  java           [kernel.kallsyms]  [k] free_unref_page_commit
+     0.10%  java           [kernel.kallsyms]  [k] free_unref_page_prepare.part.64
+
+
+Summary:
+
+
+
+Here is my implementation with the conditional profile in [isNull] :
+
+    42.19%  java           perf-22932.map     [.] Lcom/github/animeshtrivedi/arrow/ArrowIntReader;::consumeIntBatchDirectNull
+    32.01%  java           perf-22932.map     [.] Lcom/github/animeshtrivedi/arrow/ArrowIntReader;::isNull
+    10.94%  java           perf-22932.map     [.] Lcom/github/animeshtrivedi/benchmark/Platform;::getInt
+     9.47%  java           perf-22932.map     [.] Lcom/github/animeshtrivedi/benchmark/Platform;::getByte
+--->[94.6% by here, top 4 symbols]
+     0.88%  java           libjvm.so          [.] acl_CopyRight
+     0.78%  cpufreqd       [kernel.kallsyms]  [k] memcpy
+     0.76%  perf           [kernel.kallsyms]  [k] unmap_page_range
+     0.76%  kworker/u33:1  [kernel.kallsyms]  [k] dequeue_entity
+     0.61%  swapper        [kernel.kallsyms]  [k] rb_next
+     0.45%  apache2        [kernel.kallsyms]  [k] _raw_spin_lock
+     0.38%  swapper        [kernel.kallsyms]  [k] menu_select
+     0.24%  kworker/u32:0  [kernel.kallsyms]  [k] __schedule
+     0.13%  swapper        [kernel.kallsyms]  [k] irq_exit
+     0.11%  swapper        [kernel.kallsyms]  [k] _find_next_bit
+     0.07%  swapper        [kernel.kallsyms]  [k] call_cpuidle
+     0.04%  swapper        [kernel.kallsyms]  [k] __build_skb
+     0.03%  htop           [kernel.kallsyms]  [k] rw_verify_area
+     0.03%  swapper        [kernel.kallsyms]  [k] update_load_avg
+     0.02%  htop           [kernel.kallsyms]  [k] __virt_addr_valid
+     0.02%  htop           libc-2.23.so       [.] __GI_____strtoll_l_internal
+     0.02%  htop           [kernel.kallsyms]  [k] seq_put_decimal_ull
+     0.02%  htop           [kernel.kallsyms]  [k] link_path_walk
+     0.01%  kworker/0:0    [kernel.kallsyms]  [k] acpi_ut_valid_internal_object
+     0.01%  kworker/u33:2  [kernel.kallsyms]  [k] bit_cursor
+
+
+[isSet profile]
+    35.22%  java           perf-23538.map     [.] Lcom/github/animeshtrivedi/arrow/ArrowIntReader;::isSet
+    23.91%  java           perf-23538.map     [.] Lcom/github/animeshtrivedi/arrow/ArrowIntReader;::consumeIntBatchDirectNull
+    19.89%  java           perf-23538.map     [.] Lcom/github/animeshtrivedi/benchmark/Platform;::getInt
+    11.16%  java           perf-23538.map     [.] Lcom/github/animeshtrivedi/benchmark/Platform;::getByte
+     1.13%  java           libjvm.so          [.] acl_CopyRight
+     0.93%  htop           [kernel.kallsyms]  [k] mutex_unlock
+     0.84%  perf           perf               [.] 0x000000000001e566
+     0.83%  perf           [kernel.kallsyms]  [k] unmap_page_range
+     0.81%  swapper        [kernel.kallsyms]  [k] nf_conntrack_in
+     0.79%  kworker/4:2    [kernel.kallsyms]  [k] mod_node_page_state
+     0.74%  java           [kernel.kallsyms]  [k] release_pages
+     0.62%  cpufreqd       [kernel.kallsyms]  [k] kstat_irqs_usr
+     0.46%  swapper        [kernel.kallsyms]  [k] account_idle_ticks
+     0.46%  swapper        [kernel.kallsyms]  [k] poll_idle
+     0.43%  swapper        [kernel.kallsyms]  [k] rcu_needs_cpu
+     0.40%  swapper        [kernel.kallsyms]  [k] __next_timer_interrupt
+     0.37%  java           [kernel.kallsyms]  [k] free_pcppages_bulk
+     0.27%  kworker/u32:0  [kernel.kallsyms]  [k] enqueue_entity
+     0.19%  java           [kernel.kallsyms]  [k] free_pcp_prepare
+     0.18%  java           [kernel.kallsyms]  [k] free_unref_page_list
+     0.17%  java           [kernel.kallsyms]  [k] __mod_zone_page_state
+     0.15%  swapper        [kernel.kallsyms]  [k] enqueue_hrtimer
+     0.02%  swapper        [kernel.kallsyms]  [k] __slab_free
+     0.01%  kworker/u32:0  [kernel.kallsyms]  [k] rcu_note_context_switch
+     0.01%  gmain          [kernel.kallsyms]  [k] entry_SYSCALL_64_stage2
+     0.00%  swapper        [kernel.kallsyms]  [k] irq_work_run_list
+     0.00%  swapper        [kernel.kallsyms]  [k] generic_smp_call_function_single_interrupt
+     0.00%  swapper        [kernel.kallsyms]  [k] idle_cpu
+     0.00%  swapper        [kernel.kallsyms]  [k] flush_smp_call_function_queue
+     0.00%  swapper        [kernel.kallsyms]  [k] irq_exit
+     0.00%  perf           [kernel.kallsyms]  [k] mutex_unlock
+     0.00%  java           [kernel.kallsyms]  [k] x86_pmu_enable
+     0.00%  swapper        [kernel.kallsyms]  [k] __intel_pmu_enable_all
+     0.00%  perf           [kernel.kallsyms]  [k] __intel_pmu_enable_all
+
+    36.47%  java           perf-23788.map     [.] Lcom/github/animeshtrivedi/arrow/ArrowIntReader;::isSetLong
+    26.75%  java           perf-23788.map     [.] Lcom/github/animeshtrivedi/arrow/ArrowIntReader;::consumeIntBatchDirectNull
+    19.15%  java           perf-23788.map     [.] Lcom/github/animeshtrivedi/benchmark/Platform;::getInt
+    10.11%  java           perf-23788.map     [.] Lcom/github/animeshtrivedi/benchmark/Platform;::getLong
+
+
+We will come back to the profile later: here is the setNull trick: DON't COUNT NUMBER OF BITS, just check for ZERO!
+gives another 1-2 Gbps for integers
+
+
+When using Long from platform
+    38.23%  java           perf-24062.map     [.] Lcom/github/animeshtrivedi/arrow/ArrowIntReader;::isNull
+    27.01%  java           perf-24062.map     [.] Lcom/github/animeshtrivedi/arrow/ArrowIntReader;::consumeIntBatchDirectNull
+    13.96%  java           perf-24062.map     [.] Lcom/github/animeshtrivedi/benchmark/Platform;::getInt
+     9.96%  java           perf-24062.map     [.] Lcom/github/animeshtrivedi/benchmark/Platform;::getLong
+When using bytes again:
+  41.99%  java           perf-24232.map     [.] Lcom/github/animeshtrivedi/arrow/ArrowIntReader;::isNull
+  28.66%  java           perf-24232.map     [.] Lcom/github/animeshtrivedi/arrow/ArrowIntReader;::consumeIntBatchDirectNull
+  11.73%  java           perf-24232.map     [.] Lcom/github/animeshtrivedi/benchmark/Platform;::getInt
+  10.33%  java           perf-24232.map     [.] Lcom/github/animeshtrivedi/benchmark/Platform;::getByte
+
+
+Sticking with the bytes:
+
+The Arrow code:
+    19.48%  java           perf-24361.map     [.] Lcom/github/animeshtrivedi/benchmark/ArrowHolderReader;::consumeInt4
+    15.16%  java           perf-24361.map     [.] Lio/netty/buffer/ArrowBuf;::getInt
+    12.96%  java           perf-24361.map     [.] Lorg/apache/arrow/vector/IntVector;::get
+     8.26%  java           perf-24361.map     [.] Lio/netty/buffer/ArrowBuf;::addr
+     6.63%  java           perf-24361.map     [.] Lio/netty/util/internal/PlatformDependent;::getInt
+     6.62%  java           perf-24361.map     [.] Lio/netty/util/internal/PlatformDependent;::getByte
+     6.15%  java           perf-24361.map     [.] Lorg/apache/arrow/vector/BaseFixedWidthVector;::isSet
+     6.06%  java           perf-24361.map     [.] Lio/netty/buffer/ArrowBuf;::chk
+     5.36%  java           perf-24361.map     [.] Lio/netty/util/internal/PlatformDependent0;::getByte
+     4.12%  java           perf-24361.map     [.] Lio/netty/util/internal/PlatformDependent0;::getInt
+     3.25%  java           perf-24361.map     [.] Lio/netty/buffer/ArrowBuf;::getByte
+
+new implementation of ArrowReaderUnsafe -> performance is up from 9.x Gbps to 12.76 Gbps, profile below:
+
+    35.50%  java          perf-24618.map     [.] Lcom/github/animeshtrivedi/benchmark/ArrowReaderUnsafe;::isNull
+    35.38%  java          perf-24618.map     [.] Lcom/github/animeshtrivedi/benchmark/ArrowReaderUnsafe;::consumeInt4
+    14.45%  java          perf-24618.map     [.] Lcom/github/animeshtrivedi/benchmark/Platform;::getByte
+     8.43%  java          perf-24618.map     [.] Lcom/github/animeshtrivedi/benchmark/Platform;::getInt
+     1.06%  java          libjvm.so          [.] acl_CopyRight
+
+Somehow after the git commits, we are back to 11.10 from 12.76 Gbps? Profile:
+    27.80%  java          perf-24895.map     [.] Lcom/github/animeshtrivedi/benchmark/ArrowReaderUnsafe;::isNull
+    23.27%  java          perf-24895.map     [.] Lcom/github/animeshtrivedi/benchmark/ArrowReaderUnsafe;::consumeInt4
+    13.01%  java          perf-24895.map     [.] Lcom/github/animeshtrivedi/benchmark/Platform;::getByte
+     9.38%  java          perf-24895.map     [.] Lcom/github/animeshtrivedi/benchmark/Platform;::getInt
+     8.86%  java          perf-24895.map     [.] Lio/netty/util/internal/PlatformDependent0;::putLong
+     1.95%  java          perf-24895.map     [.] Lio/netty/buffer/ArrowBuf;::setByte
+     1.63%  java          perf-24895.map     [.] Lio/netty/util/internal/PlatformDependent;::putByte
+     1.17%  java          libjvm.so          [.] acl_CopyRight
+
+because, if we have intVector.setSafe(endIndex/2, 0, 0); marked in the integer generation code then we are back to
+12.75 Gbps. Oh man, this makes the difference of 2000 integers, getInt call. It alone cannot be the difference between
+700 ms that we see in the runtime. 700 ms/2000 = 350 usec/int (!)
+
+I am going to continue to performance investigation with this 12.75 configuration with -2000 integers
+(or the batch number) missing:
+
+Current situation   : -x code    : 15.46 Gbps
+Unsafe reader code  : -e unsafe  : 12.75 Gbps
+Arrow condition     : hardcoded  : 11.85 Gbps
 
