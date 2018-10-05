@@ -16,6 +16,7 @@
  */
 package com.github.animeshtrivedi.benchmark;
 
+import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Locale;
 
@@ -54,6 +55,7 @@ public interface DataInterface extends Runnable {
 
     public default String summary(){
         String x = NumberFormat.getNumberInstance(Locale.US).format(getRunTimeinNS());
+
         return "totalRows: " + totalRows() +
                 " || ints: " + totalInts() +
                 " , long " + totalLongs() +
@@ -61,6 +63,7 @@ public interface DataInterface extends Runnable {
                 " , double " + totalFloat8() +
                 " , binary " + totalBinary() +
                 " binarySize " + totalBinarySize() +
+                " checksum " + ((long) getChecksum()) +
                 " || runtimeInNS " + x +
                 " , totalBytesProcessed " + getTotalBytesProcessed() +
                 " , bandwidth " + getBandwidthGbps() + " Gbps.";
