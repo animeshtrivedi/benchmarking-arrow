@@ -44,13 +44,18 @@ public class ArrowReader extends BenchmarkResults {
 
     protected ArrowReader(){}
 
-    public static ArrowReader getArrowReaderObject(){
-        if(com.github.animeshtrivedi.benchmark.Configuration.useHolder) {
-            logger.info("Allocating a holder reader object");
-            return new ArrowHolderReader();
-        } else {
-            logger.info("Allocating a direct reader object");
+    public static ArrowReader getArrowReaderObject() throws Exception {
+        if(com.github.animeshtrivedi.benchmark.Configuration.readerType.compareToIgnoreCase("unsafe") == 0) {
+            logger.info("Allocating an UNSAFE reader object");
+            return new ArrowReaderUnsafe();
+        } else if (com.github.animeshtrivedi.benchmark.Configuration.readerType.compareToIgnoreCase("holder") == 0) {
+            logger.info("Allocating a HOLDER reader object");
+            return new ArrowReaderHolder();
+        } else if (com.github.animeshtrivedi.benchmark.Configuration.readerType.compareToIgnoreCase("default") == 0){
+            logger.info("Allocating a DEFAULT reader object");
             return new ArrowReader();
+        } else {
+            throw new Exception("Illegal reader type? " + com.github.animeshtrivedi.benchmark.Configuration.readerType);
         }
     }
 
@@ -242,6 +247,7 @@ public class ArrowReader extends BenchmarkResults {
             for (int i = 0; i < size; i++) {
                 this.timestamps[i] = System.nanoTime();
                 ArrowBlock rbBlock = arrowBlocks.get(i);
+                logger.info(i + " " + JavaUtils.toString(rbBlock));
                 if (!arrowFileReader.loadRecordBatch(rbBlock)) {
                     throw new IOException("Expected to read record batch");
                 }

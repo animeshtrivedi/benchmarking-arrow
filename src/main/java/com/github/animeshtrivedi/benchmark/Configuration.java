@@ -66,7 +66,7 @@ public class Configuration {
     public static boolean offHeap = false;
     public static boolean runGC = false;
 
-    public static boolean useHolder = false;
+    public static String readerType = "default";
 
     public static boolean xcode = false;
 }
