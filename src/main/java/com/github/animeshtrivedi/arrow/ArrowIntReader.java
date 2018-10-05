@@ -17,7 +17,9 @@
 package com.github.animeshtrivedi.arrow;
 
 import com.github.animeshtrivedi.benchmark.*;
+import io.netty.buffer.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
@@ -54,8 +56,7 @@ public class ArrowIntReader extends BenchmarkResults {
     }
 
     private void _init() throws Exception {
-        //this.allocator = new TracerAllocator(new DebugAllocatorListener(), Integer.MAX_VALUE);
-        this.allocator = new TracerAllocator(Integer.MAX_VALUE);
+        this.allocator = new RootAllocator(Integer.MAX_VALUE);
         this.arrowFileReader = new ArrowFileReader(new SeekableReadChannel(this.channel),
                 this.allocator);
         this.root = arrowFileReader.getVectorSchemaRoot();
@@ -153,7 +154,8 @@ public class ArrowIntReader extends BenchmarkResults {
                 ArrowBlock block = arrowBlocks.get(i);
                 this.channel.position(block.getOffset() + block.getMetadataLength());
                 //consumeIntBatchDirect(buf, bitmapSize, (int) block.getBodyLength());
-                consumeIntBatchDirectNull(buf, bitmapSize, (int) block.getBodyLength());
+                //consumeIntBatchDirectNullCheck(buf, bitmapSize, (int) block.getBodyLength());
+                consumeIntBatchDirectNullCheckWithAlloc(buf, bitmapSize, (int) block.getBodyLength());
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -207,7 +209,7 @@ public class ArrowIntReader extends BenchmarkResults {
     }
 
 
-    private void consumeIntBatchDirectNull(ByteBuffer buf, int bitmapSize, int bodySize) throws Exception{
+    private void consumeIntBatchDirectNullCheck(ByteBuffer buf, int bitmapSize, int bodySize) throws Exception{
         this.channel.read(buf);
         long address = ((DirectBuffer) buf).address();
         long k = address + bitmapSize;
@@ -221,5 +223,30 @@ public class ArrowIntReader extends BenchmarkResults {
             }
             k+=Integer.BYTES;
         }
+    }
+
+
+    private void consumeIntBatchDirectNullCheckWithAlloc(ByteBuffer bufx, int bitmapSize, int bodySize) throws Exception{
+        ArrowBuf arrowBuffer = this.allocator.buffer(bodySize);
+        // mark the area we are about to use !
+        arrowBuffer.setIndex(0, bodySize);
+        //buffer.retain(this.allocator);
+        ByteBuffer nioBuf = arrowBuffer.nioBuffer();
+        this.channel.read(nioBuf);
+        long address = arrowBuffer.memoryAddress();
+        System.err.println(JavaUtils.toHexString(address));
+        long k = address + bitmapSize;
+        for(int r = 0; r < Configuration.arrowBlockSizeInRows; r++){
+            if(!isNull(address, r)){
+                this.intCount++;
+                //this.checksum+=buf.getInt(k);
+                //this.checksum+=bytesToInt(buf.array(), k);
+                //System.err.println(Platform.getInt(null, address+k));
+                this.checksum+=Platform.getInt(null, k);
+            }
+            k+=Integer.BYTES;
+        }
+        arrowBuffer.release();
+        arrowBuffer = null; //gc
     }
 }
