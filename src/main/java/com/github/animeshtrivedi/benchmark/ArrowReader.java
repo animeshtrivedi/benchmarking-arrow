@@ -17,6 +17,7 @@
 package com.github.animeshtrivedi.benchmark;
 
 import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
 import org.apache.arrow.vector.ipc.SeekableReadChannel;
@@ -78,7 +79,8 @@ public class ArrowReader extends BenchmarkResults {
 
     private void _init() throws Exception {
         //this.allocator = new TracerAllocator(new DebugAllocatorListener(), Integer.MAX_VALUE);
-        this.allocator = new TracerAllocator(Integer.MAX_VALUE);
+        //this.allocator = new TracerAllocator(Integer.MAX_VALUE);
+        this.allocator = new RootAllocator(Integer.MAX_VALUE);
         this.arrowFileReader = new ArrowFileReader(new SeekableReadChannel(this.rchannel),
                 this.allocator);
         this.root = arrowFileReader.getVectorSchemaRoot();
