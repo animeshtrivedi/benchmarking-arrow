@@ -21,9 +21,10 @@ import scala.Tuple2;
 
 public class Main {
     final static Logger logger = Logger.getLogger(Main.class);
+    final static double version = 10.0;
 
     public static void main(String[] args) {
-        System.out.println("Welcome to Parquet Benchmarking project ");
+        System.out.println("Welcome to Parquet Benchmarking project, version " + version);
         String prop = System.getProperty("drill.enable_unsafe_memory_access");
         System.err.println("Drill condition = " + !"true".equals(prop) + " , it is one of the || , other being assert enabled, check the -ea flag ");
         ParseOptions options = new ParseOptions();
