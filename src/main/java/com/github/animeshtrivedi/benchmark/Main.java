@@ -23,7 +23,9 @@ public class Main {
     final static Logger logger = Logger.getLogger(Main.class);
 
     public static void main(String[] args) {
-        System.out.println("Welcome to Parquet Benchmarking project");
+        System.out.println("Welcome to Parquet Benchmarking project ");
+        String prop = System.getProperty("drill.enable_unsafe_memory_access");
+        System.err.println("Drill condition = " + !"true".equals(prop) + " , it is one of the || , other being assert enabled, check the -ea flag ");
         ParseOptions options = new ParseOptions();
         options.parse(args);
         try {
