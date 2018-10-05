@@ -16,6 +16,7 @@
  */
 package com.github.animeshtrivedi.benchmark;
 
+import com.github.animeshtrivedi.arrow.ArrowIntReader;
 import com.github.animeshtrivedi.generator.ArrowDataGenerator;
 import com.github.animeshtrivedi.generator.GeneratorFactory;
 import org.apache.log4j.Logger;
@@ -70,7 +71,11 @@ public class ArrowMemoryBench extends BenchmarkResults {
             // For now the problem is gone with large enough young generation and G1GC - if we get time we
             // might return to it.
             //RunGC.getInstance().runGC();
-            this.rx  = ArrowReader.getArrowReaderObject().init(this.cx);
+            if(Configuration.xcode)
+                this.rx  = new ArrowIntReader(this.cx);
+            else
+                this.rx  = ArrowReader.getArrowReaderObject().init(this.cx);
+
         } catch (Exception e) {
             e.printStackTrace();
         }
