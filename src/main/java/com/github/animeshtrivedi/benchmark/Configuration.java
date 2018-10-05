@@ -67,4 +67,6 @@ public class Configuration {
     public static boolean runGC = false;
 
     public static boolean useHolder = false;
+
+    public static boolean xcode = false;
 }

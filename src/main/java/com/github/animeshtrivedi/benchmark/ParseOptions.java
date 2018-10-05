@@ -41,14 +41,15 @@ public class ParseOptions {
         options.addOption("c", "nulCols", true, "number of columns");
         options.addOption("g", "rowGroupCount", true, "number of rows in a Arrow block");
         options.addOption("d", "debug", false, "debug mode");
-        options.addOption("x", "warmup run", false, "do a warm-up");
+        options.addOption("k", "warmup run", false, "do a warm-up");
         options.addOption("v", "verbose", false, "show some additional printouts");
+        options.addOption("x", "X code", false, "run X code");
 
         options.addOption("a", "on vs offheap", false, "-a enables offheap direct buffers, otherwise default is on-heap byte[]");
         options.addOption("b", "run gc", false, "-b enables running GC whenever sensible");
         options.addOption("e", "use holder", false, "-c enables the user of the holder API in arrow");
         options.addOption("j", "blockSizeInBytes", true, "Arrow block size in bytes");
-        //a, b, c, d, e, [f], g, h, i, j, [k], [l], [m], n, o, p, [q], r, s, t, [u], v, w, x, [y], [z],
+        //a, b, c, d, e, [f], g, h, i, j, k, [l], [m], n, o, p, [q], r, s, t, [u], v, w, x, [y], [z],
     }
 
     public void show_help() {
@@ -79,8 +80,11 @@ public class ParseOptions {
             if (cmd.hasOption("v")) {
                 Configuration.verbose = true;
             }
-            if (cmd.hasOption("x")) {
+            if (cmd.hasOption("k")) {
                 Configuration.warmup = true;
+            }
+            if (cmd.hasOption("x")) {
+                Configuration.xcode = true;
             }
             if (cmd.hasOption("a")) {
                 Configuration.offHeap = true;
