@@ -43,11 +43,11 @@
       <artifactId>hadoop-client</artifactId>
       <version>2.7.3</version>
     </dependency>
-    <dependency>
+    <!-- <dependency>
       <groupId>org.apache.crail</groupId>
       <artifactId>crail-client</artifactId>
       <version>1.1-incubating-SNAPSHOT</version>
-    </dependency>
+    </dependency> -->
     <dependency>
       <groupId>org.apache.parquet</groupId>
       <artifactId>parquet-tools</artifactId>
