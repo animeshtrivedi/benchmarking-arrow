@@ -546,7 +546,6 @@ Q: is the memory allocation that is intefering? who is calling "setByte" and put
 SEVEN: TracerAllocator was used, so we removed it. That pushed the performance to in ~13.5 Gbps range.
 
 
-
 So, with the allocation in the -x path, the performance drops to 9.6 Gbps, but the profile looks sensible:
     40.90%  java           perf-28760.map     [.] Lcom/github/animeshtrivedi/arrow/ArrowIntReader;::isNull
     28.87%  java           perf-28760.map     [.] Lcom/github/animeshtrivedi/arrow/ArrowIntReader;::consumeIntBatchDirectNullCheckWithAlloc
@@ -561,4 +560,154 @@ So, with the allocation in the -x path, the performance drops to 9.6 Gbps, but t
 SO what is going on?
 
 A quick check shows that there 2 unique buffers which are allocated in the path. Somehow the direct buffer
-acquired from the allocator vs me called ByteBuffer.allocDirect ...I don't know what is happening. 
+acquired from the allocator vs me called ByteBuffer.allocDirect ...I don't know what is happening.
+
+
+[October 8th, 2-18]
+
+atr@flex13:~/crail-deployment/arrow$ numactl -C 8 -m 1  java -XX:+UseG1GC -Xmn120G -Xmx256G -Ddrill.enable_unsafe_memory_access=true -cp ./4j/:./benchmark-arrow-1.0.jar:./dependency/* com.github.animeshtrivedi.benchmark.Main -t ArrowMemBench -p 1 -r 2000000000 -c 1 -g 1000000 -n int -e unsafe -a 2>&1 | tee log
+Welcome to Parquet Benchmarking project, version 10.0
+Drill condition = false , it is one of the || , other being assert enabled, check the -ea flag
+2018-10-05 17:18:59 0 INFO  Main:46 - starting the test run
+2018-10-05 17:18:59 2 INFO  ExecuteTest:63 - ...allocated 1 ArrowMemoryBench array
+SLF4J: Class path contains multiple SLF4J bindings.
+SLF4J: Found binding in [jar:file:/home/atr/crail-deployment/arrow/dependency/parquet-tools-1.8.2.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: Found binding in [jar:file:/home/atr/crail-deployment/arrow/dependency/slf4j-log4j12-1.7.12.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+SLF4J: Actual binding is of type [org.slf4j.impl.Log4jLoggerFactory]
+2018-10-05 17:19:00 525 INFO  ExecuteTest:72 - ...	 allocated [0] ArrowMemoryBench object, with datagen
+2018-10-05 17:19:00 525 INFO  ExecuteTest:75 - ... going to wait for them to finish
+2018-10-05 17:19:13 13672 INFO  ArrowMemoryBench:64 - IntegerGenerator rows: 2000000000 columns 1 genMode  with batch size set to 1000000 rows batchCount 2000
+2018-10-05 17:19:13 13673 INFO  ArrowReader:50 - Allocating an UNSAFE reader object
+2018-10-05 17:19:13 13686 INFO  ExecuteTest:78 - ...	 finished [0]
+2018-10-05 17:19:13 13688 INFO  ExecuteTest:86 - ...allocating 1 thread objects
+2018-10-05 17:19:13 13688 INFO  ExecuteTest:91 - ...test prep finished, starting the execution now
+2018-10-05 17:19:18 18545 INFO  ExecuteTest:100 - ...test ends
+	 [0] totalRows: 2000000000 || ints: 2000000000 , long 0 , float4 0 , double 0 , binary 0 binarySize 0 checksum 999999000000000 || runtimeInNS 4,856,574,490 , totalBytesProcessed 8000000000 , bandwidth 13.18 Gbps.
+-----------------------------------------------------------------------
+Total bytes: 8000000000(7GiB) bandwidth 13.18 Gbps
+-----------------------------------------------------------------------
+
+P1: lower performance for UnsafeReader implementation. Last week it was around 12.xx Gbps, but today it is barely
+8.x Gbps.
+
+Profile for 2B/1MB setting as the same command as above:
+
+EIGHT: I don't get this bitvector help loader thing:
+ArrowBuf loadValidityBuffer - why it wants to optimize when there is an already loaded buffer?
+
+
+
+atr@flex13:~/crail-deployment/arrow$ numactl -C 8 -m 1  java -XX:+UseG1GC -Xmn120G -Xmx256G -Ddrill.enable_unsafe_memory_access=true -Darrow.enable_bitmap_optimization=false -cp ./4j/:./benchmark-arrow-1.0.jar:./dependency/* com.github.animeshtrivedi.benchmark.Main -t ArrowMemBench -p 1 -r 200 -c 1 -g 10 -n int -e unsafe -a -x 2>&1 | tee log Picked up JAVA_TOOL_OPTIONS: -XX:+PreserveFramePointer
+Welcome to Parquet Benchmarking project, version 10.0
+Drill condition = false , it is one of the || , other being assert enabled, check the -ea flag
+2018-10-08 14:04:21 0 INFO  Main:46 - starting the test run
+2018-10-08 14:04:21 8 INFO  ExecuteTest:63 - ...allocated 1 ArrowMemoryBench array
+SLF4J: Class path contains multiple SLF4J bindings.
+SLF4J: Found binding in [jar:file:/home/atr/crail-deployment/arrow/dependency/parquet-tools-1.8.2.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: Found binding in [jar:file:/home/atr/crail-deployment/arrow/dependency/slf4j-log4j12-1.7.12.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+SLF4J: Actual binding is of type [org.slf4j.impl.Log4jLoggerFactory]
+2018-10-08 14:04:21 40 DEBUG InternalLoggerFactory:71 - Using SLF4J as the default logging framework
+2018-10-08 14:04:21 44 DEBUG AbstractByteBuf:81 - -Dio.netty.buffer.bytebuf.checkAccessible: true
+2018-10-08 14:04:21 46 DEBUG ResourceLeakDetector:81 - -Dio.netty.leakDetection.level: simple
+2018-10-08 14:04:21 46 DEBUG ResourceLeakDetector:81 - -Dio.netty.leakDetection.targetRecords: 4
+2018-10-08 14:04:21 90 DEBUG PlatformDependent0:76 - -Dio.netty.noUnsafe: false
+2018-10-08 14:04:21 90 DEBUG PlatformDependent0:76 - Java version: 8
+2018-10-08 14:04:21 91 DEBUG PlatformDependent0:71 - sun.misc.Unsafe.theUnsafe: available
+2018-10-08 14:04:21 99 DEBUG PlatformDependent0:71 - sun.misc.Unsafe.copyMemory: available
+2018-10-08 14:04:21 99 DEBUG PlatformDependent0:71 - java.nio.Buffer.address: available
+2018-10-08 14:04:21 100 DEBUG PlatformDependent0:71 - direct buffer constructor: available
+2018-10-08 14:04:21 100 DEBUG PlatformDependent0:76 - java.nio.Bits.unaligned: available, true
+2018-10-08 14:04:21 100 DEBUG PlatformDependent0:71 - jdk.internal.misc.Unsafe.allocateUninitializedArray(int): unavailable prior to Java9
+2018-10-08 14:04:21 101 DEBUG PlatformDependent0:76 - java.nio.DirectByteBuffer.<init>(long, int): available
+2018-10-08 14:04:21 101 DEBUG PlatformDependent:76 - sun.misc.Unsafe: available
+2018-10-08 14:04:21 102 DEBUG PlatformDependent:76 - -Dio.netty.tmpdir: /tmp (java.io.tmpdir)
+2018-10-08 14:04:21 102 DEBUG PlatformDependent:76 - -Dio.netty.bitMode: 64 (sun.arch.data.model)
+2018-10-08 14:04:21 103 DEBUG PlatformDependent:76 - -Dio.netty.noPreferDirect: false
+2018-10-08 14:04:21 104 DEBUG PlatformDependent:76 - -Dio.netty.maxDirectMemory: 274877906944 bytes
+2018-10-08 14:04:21 104 DEBUG PlatformDependent:76 - -Dio.netty.uninitializedArrayAllocationThreshold: -1
+2018-10-08 14:04:21 104 DEBUG CleanerJava6:71 - java.nio.ByteBuffer.cleaner(): available
+2018-10-08 14:04:21 105 DEBUG ResourceLeakDetectorFactory:76 - Loaded default ResourceLeakDetector: io.netty.util.ResourceLeakDetector@3043fe0e
+2018-10-08 14:04:21 139 DEBUG PooledByteBufAllocator:76 - -Dio.netty.allocator.numHeapArenas: 2
+2018-10-08 14:04:21 140 DEBUG PooledByteBufAllocator:76 - -Dio.netty.allocator.numDirectArenas: 2
+2018-10-08 14:04:21 140 DEBUG PooledByteBufAllocator:76 - -Dio.netty.allocator.pageSize: 8192
+2018-10-08 14:04:21 140 DEBUG PooledByteBufAllocator:76 - -Dio.netty.allocator.maxOrder: 11
+2018-10-08 14:04:21 141 DEBUG PooledByteBufAllocator:76 - -Dio.netty.allocator.chunkSize: 16777216
+2018-10-08 14:04:21 141 DEBUG PooledByteBufAllocator:76 - -Dio.netty.allocator.tinyCacheSize: 512
+2018-10-08 14:04:21 141 DEBUG PooledByteBufAllocator:76 - -Dio.netty.allocator.smallCacheSize: 256
+2018-10-08 14:04:21 142 DEBUG PooledByteBufAllocator:76 - -Dio.netty.allocator.normalCacheSize: 64
+2018-10-08 14:04:21 142 DEBUG PooledByteBufAllocator:76 - -Dio.netty.allocator.maxCachedBufferCapacity: 32768
+2018-10-08 14:04:21 142 DEBUG PooledByteBufAllocator:76 - -Dio.netty.allocator.cacheTrimInterval: 8192
+2018-10-08 14:04:21 142 DEBUG PooledByteBufAllocator:76 - -Dio.netty.allocator.useCacheForAllThreads: true
+2018-10-08 14:04:21 145 DEBUG InternalThreadLocalMap:76 - -Dio.netty.threadLocalMap.stringBuilder.initialSize: 1024
+2018-10-08 14:04:21 145 DEBUG InternalThreadLocalMap:76 - -Dio.netty.threadLocalMap.stringBuilder.maxSize: 4096
+2018-10-08 14:04:21 177 TRACE allocator:259 - Memory Usage:
+io.netty.buffer.PooledByteBufAllocatorL@6f30c1f9
+2018-10-08 14:04:22 565 INFO  ExecuteTest:72 - ...	 allocated [0] ArrowMemoryBench object, with datagen
+
+
+
+***
+
+
+atr@flex13:~/crail-deployment/arrow$ numactl -C 8 -m 1  java -XX:+UseG1GC -Xmn120G -Xmx256G -Ddrill.enable_unsafe_memory_access=true -Darrow.enable_bitmap_optimization=false -Dio.netty.buffer.bytebuf.checkAccessible=false -cp ./4j/:./benchmark-arrow-1.0.jar:./dependency/* com.github.animeshtrivedi.benchmark.Main -t ArrowMemBench -p 1 -r 2000000000 -c 1 -g 1000000 -n int -e unsafe -a 2>&1 | tee log
+Picked up JAVA_TOOL_OPTIONS: -XX:+PreserveFramePointer
+Welcome to Parquet Benchmarking project, version 10.0
+Drill condition = false , it is one of the || , other being assert enabled, check the -ea flag
+2018-10-08 15:30:46 0 INFO  Main:46 - starting the test run
+2018-10-08 15:30:46 2 INFO  ExecuteTest:63 - ...allocated 1 ArrowMemoryBench array
+SLF4J: Class path contains multiple SLF4J bindings.
+SLF4J: Found binding in [jar:file:/home/atr/crail-deployment/arrow/dependency/parquet-tools-1.8.2.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: Found binding in [jar:file:/home/atr/crail-deployment/arrow/dependency/slf4j-log4j12-1.7.12.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+SLF4J: Actual binding is of type [org.slf4j.impl.Log4jLoggerFactory]
+2018-10-08 15:30:46 533 INFO  ExecuteTest:72 - ...	 allocated [0] ArrowMemoryBench object, with datagen
+2018-10-08 15:30:46 534 INFO  ExecuteTest:75 - ... going to wait for them to finish
+[BOUNDS_CHECKS]: false
+2018-10-08 15:31:00 13693 INFO  ArrowMemoryBench:64 - IntegerGenerator rows: 2000000000 columns 1 genMode  with batch size set to 1000000 rows batchCount 2000
+2018-10-08 15:31:00 13694 INFO  ArrowReader:50 - Allocating an UNSAFE reader object
+2018-10-08 15:31:00 13709 INFO  ExecuteTest:78 - ...	 finished [0]
+2018-10-08 15:31:00 13710 INFO  ExecuteTest:86 - ...allocating 1 thread objects
+2018-10-08 15:31:00 13710 INFO  ExecuteTest:91 - ...test prep finished, starting the execution now
+2018-10-08 15:31:04 18453 INFO  ExecuteTest:100 - ...test ends
+	 [0] totalRows: 2000000000 || ints: 2000000000 , long 0 , float4 0 , double 0 , binary 0 binarySize 0 checksum 999999000000000 || runtimeInNS 4,742,847,038 , totalBytesProcessed 8000000000 , bandwidth 13.49 Gbps.
+-----------------------------------------------------------------------
+Total bytes: 8000000000(7GiB) bandwidth 13.49 Gbps
+-----------------------------------------------------------------------
+atr@flex13:~/crail-deployment/arrow$ numactl -C 8 -m 1  java -XX:+UseG1GC -Xmn120G -Xmx256G -Ddrill.enable_unsafe_memory_access=true -Darrow.enable_bitmap_optimization=false -Dio.netty.buffer.bytebuf.checkAccessible=false -cp ./4j/:./benchmark-arrow-1.0.jar:./dependency/* com.github.animeshtrivedi.benchmark.Main -t ArrowMemBench -p 1 -r 2000000000 -c 1 -g 1000000 -n int -e unsafe -a -x 2>&1 | tee log
+Picked up JAVA_TOOL_OPTIONS: -XX:+PreserveFramePointer
+Welcome to Parquet Benchmarking project, version 10.0
+Drill condition = false , it is one of the || , other being assert enabled, check the -ea flag
+2018-10-08 15:31:59 0 INFO  Main:46 - starting the test run
+2018-10-08 15:31:59 3 INFO  ExecuteTest:63 - ...allocated 1 ArrowMemoryBench array
+SLF4J: Class path contains multiple SLF4J bindings.
+SLF4J: Found binding in [jar:file:/home/atr/crail-deployment/arrow/dependency/parquet-tools-1.8.2.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: Found binding in [jar:file:/home/atr/crail-deployment/arrow/dependency/slf4j-log4j12-1.7.12.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+SLF4J: Actual binding is of type [org.slf4j.impl.Log4jLoggerFactory]
+2018-10-08 15:31:59 531 INFO  ExecuteTest:72 - ...	 allocated [0] ArrowMemoryBench object, with datagen
+2018-10-08 15:31:59 532 INFO  ExecuteTest:75 - ... going to wait for them to finish
+[BOUNDS_CHECKS]: false
+2018-10-08 15:32:13 13748 INFO  ArrowMemoryBench:64 - IntegerGenerator rows: 2000000000 columns 1 genMode  with batch size set to 1000000 rows batchCount 2000
+There are 2000 blocks
+2018-10-08 15:32:13 13760 INFO  ExecuteTest:78 - ...	 finished [0]
+2018-10-08 15:32:13 13763 INFO  ExecuteTest:86 - ...allocating 1 thread objects
+2018-10-08 15:32:13 13763 INFO  ExecuteTest:91 - ...test prep finished, starting the execution now
+2018-10-08 15:32:17 18543 INFO  ExecuteTest:100 - ...test ends
+	 [0] totalRows: 0 || ints: 2000000000 , long 0 , float4 0 , double 0 , binary 0 binarySize 0 checksum 999999000000000 || runtimeInNS 4,778,325,634 , totalBytesProcessed 8000000000 , bandwidth 13.39 Gbps.
+-----------------------------------------------------------------------
+Total bytes: 8000000000(7GiB) bandwidth 13.39 Gbps
+-----------------------------------------------------------------------
+atr@flex13:~/crail-deployment/arrow$
+
+
+NINE: now, both -x path and unsafe have almost the same performance. -x does not do buffer allocation. So that means
+that Arrow buffer implementation is pretty cool and recycles buffers as fast as possible. We can use these buffer
+to build a RDMA cache.
+
+
+---
+Store_Sales performance
+
+
