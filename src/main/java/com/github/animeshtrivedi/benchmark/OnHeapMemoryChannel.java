@@ -97,8 +97,9 @@ public class OnHeapMemoryChannel extends MemoryChannel {
                 byteArrayOffset=0;
             }
         }
-        dst.position(originalReadTarget - readTarget);
-        return originalReadTarget - readTarget;
+        int numBytesRead = originalReadTarget - readTarget;
+        dst.position(dst.position() + numBytesRead);
+        return numBytesRead;
     }
 
     @Override
