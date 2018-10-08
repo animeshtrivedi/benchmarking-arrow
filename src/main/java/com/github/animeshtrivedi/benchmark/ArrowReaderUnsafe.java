@@ -42,7 +42,7 @@ public class ArrowReaderUnsafe extends ArrowReader {
         }
     }
 
-    protected void consumeBigInt(BigIntVector vector) {
+    final protected void consumeBigInt(BigIntVector vector) {
         int valCount = vector.getValueCount();
         long valididtyAddress = vector.getValidityBufferAddress();
         long dataAddress = vector.getDataBufferAddress();
@@ -55,7 +55,7 @@ public class ArrowReaderUnsafe extends ArrowReader {
         }
     }
 
-    protected void consumeFloat4(Float4Vector vector) {
+    final protected void consumeFloat4(Float4Vector vector) {
         int valCount = vector.getValueCount();
         long valididtyAddress = vector.getValidityBufferAddress();
         long dataAddress = vector.getDataBufferAddress();
@@ -68,7 +68,7 @@ public class ArrowReaderUnsafe extends ArrowReader {
         }
     }
 
-    protected void consumeFloat8(Float8Vector vector) {
+    final protected void consumeFloat8(Float8Vector vector) {
         int valCount = vector.getValueCount();
         long valididtyAddress = vector.getValidityBufferAddress();
         long dataAddress = vector.getDataBufferAddress();
@@ -81,7 +81,7 @@ public class ArrowReaderUnsafe extends ArrowReader {
         }
     }
 
-    protected void consumeBinary(VarBinaryVector vector) {
+    final protected void consumeBinary(VarBinaryVector vector) {
         //TODO: this is not tested yet
         int valCount = vector.getValueCount();
         long valididtyAddress = vector.getValidityBufferAddress();
