@@ -16,6 +16,10 @@
  */
 package com.github.animeshtrivedi.benchmark;
 
+import sun.nio.ch.DirectBuffer;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.channels.WritableByteChannel;
 
@@ -29,4 +33,26 @@ public abstract class MemoryChannel implements WritableByteChannel, SeekableByte
             return new OnHeapMemoryChannel();
         }
     }
+
+    final public int read(ByteBuffer dst) throws IOException {
+        if(dst instanceof DirectBuffer)
+            return readDirectUnsafe(dst);
+        else
+            return readSafe(dst);
+    }
+
+
+    @Override
+    final public int write(ByteBuffer src) throws IOException {
+        // there is a BUG in the Arrow contract, so we need to push all here
+        int dataAvailable = src.remaining();
+        while (src.hasRemaining()){
+            writeOne(src);
+        }
+        return dataAvailable;
+    }
+
+    abstract int readDirectUnsafe(ByteBuffer dst) throws IOException;
+    abstract int readSafe(ByteBuffer dst) throws IOException;
+    abstract int writeOne(ByteBuffer src) throws IOException;
 }

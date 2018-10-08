@@ -54,14 +54,7 @@ public class OffHeapMemoryChannel extends MemoryChannel {
         arrIndex = 0;
     }
 
-    public int read(ByteBuffer dst) throws IOException {
-        if(dst instanceof DirectBuffer)
-            return readDirectUnsafe(dst);
-        else
-            return readSafe(dst);
-    }
-
-    public int readSafe(ByteBuffer dst) throws IOException {
+    final public int readSafe(ByteBuffer dst) throws IOException {
         int originalReadTarget = dst.remaining();
         int readTarget = originalReadTarget;
         while (readTarget > 0 && arrIndex < dataArray.size()){
@@ -82,7 +75,7 @@ public class OffHeapMemoryChannel extends MemoryChannel {
         return originalReadTarget - readTarget;
     }
 
-    public int readDirectUnsafe(ByteBuffer dst) throws IOException {
+    final public int readDirectUnsafe(ByteBuffer dst) throws IOException {
         assert dst instanceof DirectBuffer;
         long dstOffset = ((DirectBuffer)dst).address() + dst.position();
         int originalReadTarget = dst.remaining();
@@ -106,17 +99,7 @@ public class OffHeapMemoryChannel extends MemoryChannel {
         return numBytesRead;
     }
 
-    @Override
-    public int write(ByteBuffer src) throws IOException {
-        // there is a BUG in the Arrow contract, so we need to push all here
-        int dataAvailable = src.remaining();
-        while (src.remaining() > 0){
-            wSize+=_writeOne(src);
-        }
-        return dataAvailable;
-    }
-
-    private int _writeOne(ByteBuffer src) throws IOException {
+    final int writeOne(ByteBuffer src) throws IOException {
         int dataAvailable = src.remaining();
         int oldLimit = src.limit();
         // step 1, check if we have enough space
@@ -144,6 +127,7 @@ public class OffHeapMemoryChannel extends MemoryChannel {
         dst.put(src);
         byteArrayOffset+=toCopy;
         src.limit(oldLimit);
+        this.wSize+=(dataAvailable - src.remaining());
         return dataAvailable - src.remaining();
     }
 
