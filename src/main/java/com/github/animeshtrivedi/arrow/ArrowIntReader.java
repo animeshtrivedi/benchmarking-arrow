@@ -139,6 +139,8 @@ public class ArrowIntReader extends BenchmarkResults {
                 //System.err.println("\t " + JavaUtils.toString(arrowBlocks.get(i)));
                 ArrowBlock block = arrowBlocks.get(i);
                 this.channel.position(block.getOffset() + block.getMetadataLength());
+                buf.clear();
+                this.channel.read(buf);
                 consumeIntBatchOnHeap(buf, bitmapSize, (int) block.getBodyLength());
             }
         } catch (Exception e) {
@@ -153,9 +155,33 @@ public class ArrowIntReader extends BenchmarkResults {
                 //System.err.println("\t " + JavaUtils.toString(arrowBlocks.get(i)));
                 ArrowBlock block = arrowBlocks.get(i);
                 this.channel.position(block.getOffset() + block.getMetadataLength());
+                buf.clear();
+                this.channel.read(buf);
                 //consumeIntBatchDirect(buf, bitmapSize, (int) block.getBodyLength());
-                //consumeIntBatchDirectNullCheck(buf, bitmapSize, (int) block.getBodyLength());
-                consumeIntBatchDirectNullCheckWithAlloc(buf, bitmapSize, (int) block.getBodyLength());
+                consumeIntBatchDirectNullCheck(buf, bitmapSize, (int) block.getBodyLength());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void runOffHeapTrace(){
+        long t0,t1,t2,t3;
+        try {
+            // reading the file block by block
+            for (int i = 0; i < arrowBlocks.size(); i++) {
+                t0 = System.nanoTime();
+                //System.err.println("\t " + JavaUtils.toString(arrowBlocks.get(i)));
+                ArrowBlock block = arrowBlocks.get(i);
+                this.channel.position(block.getOffset() + block.getMetadataLength());
+                t1 = System.nanoTime();
+                buf.clear();
+                int rex = this.channel.read(buf);
+                t2  = System.nanoTime();
+                //consumeIntBatchDirect(buf, bitmapSize, (int) block.getBodyLength());
+                consumeIntBatchDirectNullCheck(buf, bitmapSize, (int) block.getBodyLength());
+                t3 = System.nanoTime();
+                System.err.println(i + "setup " + Utils.commaLongNumber(t1-t0) + " reading " + Utils.commaLongNumber(t2-t1) + " ns, consume  " + (Utils.commaLongNumber(t3-t2)) + " rex " + rex + " buffer status " + buf);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -163,21 +189,20 @@ public class ArrowIntReader extends BenchmarkResults {
     }
 
     private void consumeIntBatchOnHeap(ByteBuffer buf, int bitmapSize, int bodySize) throws Exception{
-        this.channel.read(buf);
-        // now all contains 32 ints and their bitfield, bitfield first
-        for(int k = bitmapSize; k < bodySize; k+=4){
+        // now the buffer contains [BITfield + Values] in this sequence, lets consume them
+        for(int k = bitmapSize; k < bodySize; k+=Integer.BYTES){
             this.intCount++;
             //this.checksum+=buf.getInt(k);
+            // TODO: there is a bit of mismatch between the LE of Arrow and BE of the JVM
+            // TODO: need to find out more
             this.checksum+=bytesToInt(buf.array(), k);
             //System.err.println("\t" + buf.getInt(k));//bytesToInt(all.array(), k));
         }
     }
 
     private void consumeIntBatchDirect(ByteBuffer buf, int bitmapSize, int bodySize) throws Exception{
-        this.channel.read(buf);
         long address = ((DirectBuffer) buf).address();
-        // now all contains 32 ints and their bitfield, bitfield first
-        for(int k = bitmapSize; k < bodySize; k+=4){
+        for(int k = bitmapSize; k < bodySize; k+=Integer.BYTES){
             this.intCount++;
             //this.checksum+=buf.getInt(k);
             //this.checksum+=bytesToInt(buf.array(), k);
@@ -210,7 +235,6 @@ public class ArrowIntReader extends BenchmarkResults {
 
 
     private void consumeIntBatchDirectNullCheck(ByteBuffer buf, int bitmapSize, int bodySize) throws Exception{
-        this.channel.read(buf);
         long address = ((DirectBuffer) buf).address();
         long k = address + bitmapSize;
         for(int r = 0; r < Configuration.arrowBlockSizeInRows; r++){
@@ -234,7 +258,7 @@ public class ArrowIntReader extends BenchmarkResults {
         ByteBuffer nioBuf = arrowBuffer.nioBuffer();
         this.channel.read(nioBuf);
         long address = arrowBuffer.memoryAddress();
-        System.err.println(JavaUtils.toHexString(address));
+        //System.err.println(JavaUtils.toHexString(address));
         long k = address + bitmapSize;
         for(int r = 0; r < Configuration.arrowBlockSizeInRows; r++){
             if(!isNull(address, r)){
