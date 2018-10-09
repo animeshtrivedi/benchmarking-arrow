@@ -118,7 +118,9 @@ public class ParseOptions {
                      Configuration.type = GeneratorFactory.INT_GENERATOR;
                  else if (name.compareToIgnoreCase("binary") == 0) {
                     Configuration.type = GeneratorFactory.BIN_GENERATOR;
-                } else {
+                } else if (name.compareToIgnoreCase("long") == 0) {
+                     Configuration.type = GeneratorFactory.LONG_GENERATOR;
+                 } else {
                      throw new ParseException("Illegal name for a type " + name);
                  }
             }

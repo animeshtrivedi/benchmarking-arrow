@@ -16,8 +16,10 @@
  */
 package com.github.animeshtrivedi.benchmark;
 
+import com.github.animeshtrivedi.generator.ArrowDataGenerator;
 import com.github.animeshtrivedi.generator.BinaryGenerator;
 import com.github.animeshtrivedi.generator.GeneratorFactory;
+import com.github.animeshtrivedi.generator.LongGenerator;
 import org.apache.log4j.Logger;
 import scala.Tuple2;
 
@@ -31,20 +33,10 @@ public class ExecuteTest {
             DataInterface[] ops = new DataInterface[Configuration.parallel];
 
             if (Configuration.testName.compareToIgnoreCase("datagen") == 0) {
-                if (Configuration.type == GeneratorFactory.INT_GENERATOR) {
-                    for (int i = 0; i < Configuration.parallel; i++) {
-                        HDFSWritableByteChannel w = new HDFSWritableByteChannel(Configuration.outputDir+i);
-                        BinaryGenerator temp = new BinaryGenerator(w);
-                        ops[i] = temp;
-                    }
-                } else if (Configuration.type == GeneratorFactory.BIN_GENERATOR) {
-                    for (int i = 0; i < Configuration.parallel; i++) {
-                        HDFSWritableByteChannel w = new HDFSWritableByteChannel("/datagen/arrow/output"+i);
-                        BinaryGenerator temp = new BinaryGenerator(w);
-                        ops[i] = temp;
-                    }
-                } else {
-                    throw new Exception("datagen type " + Configuration.type + " not implemented");
+                for (int i = 0; i < Configuration.parallel; i++) {
+                    HDFSWritableByteChannel w = new HDFSWritableByteChannel(Configuration.outputDir+i);
+                    ArrowDataGenerator temp = GeneratorFactory.generator(w);
+                    ops[i] = temp;
                 }
             } else if (Configuration.testName.compareToIgnoreCase("ParquetToArrow") == 0) {
                 for (int i = 0; i < Configuration.parallel; i++) {
