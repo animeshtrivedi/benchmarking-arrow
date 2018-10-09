@@ -18,7 +18,6 @@ package com.github.animeshtrivedi.generator;
 
 import com.github.animeshtrivedi.benchmark.Configuration;
 import com.github.animeshtrivedi.benchmark.DataInterface;
-import com.github.animeshtrivedi.benchmark.MemoryChannel;
 import com.google.common.collect.ImmutableList;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.FieldVector;

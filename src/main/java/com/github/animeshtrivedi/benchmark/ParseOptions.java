@@ -20,8 +20,6 @@ import com.github.animeshtrivedi.generator.GeneratorFactory;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Logger;
 
-import java.util.ArrayList;
-
 public class ParseOptions {
     private Options options;
     final static Logger logger = Logger.getLogger(ParquetToArrow.class);

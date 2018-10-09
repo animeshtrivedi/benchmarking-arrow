@@ -17,9 +17,7 @@
 package com.github.animeshtrivedi.benchmark;
 
 import com.github.animeshtrivedi.generator.ArrowDataGenerator;
-import com.github.animeshtrivedi.generator.BinaryGenerator;
 import com.github.animeshtrivedi.generator.GeneratorFactory;
-import com.github.animeshtrivedi.generator.LongGenerator;
 import org.apache.log4j.Logger;
 import scala.Tuple2;
 

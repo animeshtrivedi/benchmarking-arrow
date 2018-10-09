@@ -18,7 +18,6 @@ package com.github.animeshtrivedi.benchmark;
 
 import com.github.animeshtrivedi.generator.GeneratorFactory;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
