@@ -36,16 +36,20 @@ object Utils {
     val gbScale: Long = 1024 * mbScale
     val tbScale: Long = 1024 * gbScale
     if (size > tbScale) {
-      size / tbScale + "TiB"
+      twoLongToDoubleDiv(size , tbScale) + " TiB"
     } else if (size > gbScale) {
-      size / gbScale  + "GiB"
+      twoLongToDoubleDiv(size , gbScale)  + " GiB"
     } else if (size > mbScale) {
-      size / mbScale + "MiB"
+      twoLongToDoubleDiv(size , mbScale) + " MiB"
     } else if (size > kbScale) {
-      size / kbScale + "KiB"
+      twoLongToDoubleDiv(size, kbScale) + " KiB"
     } else {
       size + "B"
     }
+  }
+
+  def twoLongToDoubleDiv(l1:Long, l2:Long):Double = {
+    BigDecimal(l1.toDouble / l2.toDouble).setScale(2, BigDecimal.RoundingMode.HALF_UP).toDouble
   }
 
   def enumerateWithSize(directoryName:String):Array[(String, Long)] = {
