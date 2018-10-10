@@ -17,10 +17,8 @@ set(CMAKE_BUILD_TYPE Release) # or debug if you need to use gdb on it.
 
 find_library(ARROW_LIBRARY arrow HINTS /home/atr/local/lib)
 
-link_libraries(pthread)
+link_libraries(pthread ${ARROW_LIBRARY})
 
 include_directories("${PROJECT_SOURCE_DIR}" "/home/atr/local/include/")
 
 add_executable(benchmark-arrow-cpp ${PROJECT_SOURCE_DIR}/main.cc)
-
-target_link_libraries (benchmark-arrow-cpp PUBLIC ${ARROW_LIBRARY})
