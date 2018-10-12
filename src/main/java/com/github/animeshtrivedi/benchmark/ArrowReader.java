@@ -30,6 +30,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.channels.SeekableByteChannel;
 import java.util.List;
 
@@ -61,12 +62,22 @@ public class ArrowReader extends BenchmarkResults {
     }
 
     public ArrowReader init(String fileName) throws Exception {
-        Configuration conf = new Configuration();
-        Path path = new Path(fileName);
-        FileSystem fileSystem = path.getFileSystem(conf);
-        FSDataInputStream instream = fileSystem.open(path);
-        FileStatus status = fileSystem.getFileStatus(path);
-        this.rchannel = new HDFSSeekableByteChannel(instream, status.getLen());
+        String localFileToken = "file:";
+        if(fileName.startsWith(localFileToken)){
+            //one round of sanitization has been done with the enumeration
+            // we need to differentiate this because HDFS stream does not
+            // do ByteBuffer reading from a local file, don't know why
+            String cleanName = fileName.substring(localFileToken.length(), fileName.length());
+            RandomAccessFile ifile = new RandomAccessFile(cleanName,"r");
+            this.rchannel = ifile.getChannel();
+        } else {
+            Configuration conf = new Configuration();
+            Path path = new Path(fileName);
+            FileSystem fileSystem = path.getFileSystem(conf);
+            FSDataInputStream instream = fileSystem.open(path);
+            FileStatus status = fileSystem.getFileStatus(path);
+            this.rchannel = new HDFSSeekableByteChannel(instream, status.getLen());
+        }
         _init();
         return this;
     }
