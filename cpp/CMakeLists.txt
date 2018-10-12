@@ -16,8 +16,9 @@ add_compile_options("-std=c++17")
 set(CMAKE_BUILD_TYPE Release) # or debug if you need to use gdb on it.
 
 find_library(ARROW_LIBRARY arrow HINTS /home/atr/local/lib)
+find_library(GTEST_LIBRARY gtest HINTS /home/atr/local/lib)
 
-link_libraries(pthread ${ARROW_LIBRARY})
+link_libraries(pthread ${GTEST_LIBRARY} ${ARROW_LIBRARY})
 
 include_directories("${PROJECT_SOURCE_DIR}" "/home/atr/local/include/")
 
