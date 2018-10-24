@@ -17,13 +17,22 @@
 
 #ifndef BENCHMARK_ARROW_CPP_ARROWREADEREXAMPLE_H
 
+
+#include <arrow/memory_pool.h>
+#include <arrow/io/file.h>
+#include <arrow/status.h>
+#include <arrow/ipc/reader.h>
+
 class ArrowReadExample {
 private:
     const char *_file_name;
     std::shared_ptr<arrow::Schema> _sptr_schema;
+    std::shared_ptr<arrow::ipc::RecordBatchFileReader> _sptr_file_reader;
 public:
     explicit ArrowReadExample(const char* filename);
-    int init();
+    arrow::Status init();
+    arrow::Status debug_show();
+    arrow::Status read();
 };
 #define BENCHMARK_ARROW_CPP_ARROWREADEREXAMPLE_H
 

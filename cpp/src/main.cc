@@ -23,7 +23,8 @@ int main(int argc, char **argv) {
 
   ArrowReadExample *ex = new ArrowReadExample("/");
   std::cout << "location of the object is " << ex << "\n";
-  ex->init();
-
+  arrow::Status s = ex->init();
+  s = ex->debug_show();
+  s = ex->read();
   return 0;
 }
