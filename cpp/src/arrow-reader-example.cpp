@@ -23,13 +23,12 @@ ArrowReadExample::ArrowReadExample(const char *file_name) {
 }
 
 arrow::Status ArrowReadExample::init() {
-    std::shared_ptr<arrow::io::MemoryMappedFile> mmaped_file;
     std::cout<<"arrow file to open is : " << this->_file_name << std::endl;
     // Step 1. open the file
-    arrow::Status st = arrow::io::MemoryMappedFile::Open(this->_file_name, arrow::io::FileMode::READ, &mmaped_file);
-    std::cout<< "mmap file status is " << st.ok() << " zero copy support " << mmaped_file.get()->supports_zero_copy() << "\n";
+    arrow::Status st = arrow::io::MemoryMappedFile::Open(this->_file_name, arrow::io::FileMode::READ, &this->_sptr_mmaped_file);
+    std::cout<< "mmap file status is " << st.ok() << " zero copy support " << this->_sptr_mmaped_file.get()->supports_zero_copy() << "\n";
     // step 2 open a reader
-    st = arrow::ipc::RecordBatchFileReader::Open(mmaped_file, &this->_sptr_file_reader);
+    st = arrow::ipc::RecordBatchFileReader::Open(this->_sptr_mmaped_file, &this->_sptr_file_reader);
     std::cout<< "record batch file reader status is " << st.ok() << "\n";
     // step 3 find schema
     this->_sptr_schema = this->_sptr_file_reader.get()->schema();
@@ -45,11 +44,21 @@ arrow::Status ArrowReadExample::debug_show() {
     // step 1: load the batch and then index using the type
     int num_batches = this->_sptr_file_reader.get()->num_record_batches();
     for (int i = 0; i < num_batches; ++i) {
-        std::cout << "attempting to load batch " << i << "\n";
         std::shared_ptr<arrow::RecordBatch> chunk;
         RETURN_NOT_OK(this->_sptr_file_reader.get()->ReadRecordBatch(i, &chunk));
+        std::cout << "attempting to load batch " << i << ", contains " << chunk.get()->num_rows() << " rows and columns " << chunk.get()->num_columns() << "\n";
+        this->process_batch(chunk);
     }
     return arrow::Status::OK();
+}
+
+arrow::Status ArrowReadExample::process_batch(std::shared_ptr<arrow::RecordBatch> batch){
+    int num_cols = batch.get()->num_columns();
+    for(int i = 0; i < num_cols; i++){
+        batch.get()->column(i);
+    }
+
+
 }
 
 arrow::Status ArrowReadExample::read() {

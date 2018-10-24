@@ -28,6 +28,9 @@ private:
     const char *_file_name;
     std::shared_ptr<arrow::Schema> _sptr_schema;
     std::shared_ptr<arrow::ipc::RecordBatchFileReader> _sptr_file_reader;
+    std::shared_ptr<arrow::io::MemoryMappedFile> _sptr_mmaped_file;
+
+    arrow::Status process_batch(std::shared_ptr<arrow::RecordBatch> batch);
 public:
     explicit ArrowReadExample(const char* filename);
     arrow::Status init();
