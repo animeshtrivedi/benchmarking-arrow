@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
+#ifndef BENCHMARK_ARROW_CPP_COMMON_H
+#define BENCHMARK_ARROW_CPP_COMMON_H
 
-#include "common.h"
-#include "arrow-reader-example.h"
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
+#include <memory>
+#include <string>
+#include <vector>
+#include <iostream>
 
-int main(int argc, char **argv) {
-
-  ArrowReadExample *ex = new ArrowReadExample("/");
-  std::cout << "location of the object is " << ex << "\n";
-  ex->init();
-
-  return 0;
-}
+#endif //BENCHMARK_ARROW_CPP_COMMON_H

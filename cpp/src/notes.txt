@@ -1,0 +1,18 @@
+So, there are RecordBatchFileReader and RecordBatchFileWriter. These inherit from RecordBatchStreamWriter
+and from RecordBatchWriter (and associated reader classes)
+
+Reader takes:
+
+static Status Open([INPUT] io::RandomAccessFile* file,
+                     [OUTPUT] std::shared_ptr<RecordBatchFileReader>* reader);
+
+RandomAccessFile is
+class ARROW_EXPORT RandomAccessFile : public InputStream, public Seekable -> This I can implement for Crail
+
+Currently this class is implemented by
+- BufferReader
+- HdfsReadableFile
+- MemoryMappedFile
+- ReadWriteFileInterface
+- ReadableFile
+
