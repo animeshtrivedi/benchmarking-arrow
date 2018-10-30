@@ -36,6 +36,7 @@ public:
     arrow::Status init();
     arrow::Status debug_show();
     arrow::Status read();
+    arrow::Status consume_int32(std::shared_ptr<arrow::Array> col, int64_t num_rows);
 };
 #define BENCHMARK_ARROW_CPP_ARROWREADEREXAMPLE_H
 

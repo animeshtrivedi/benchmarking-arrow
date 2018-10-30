@@ -43,22 +43,47 @@ arrow::Status ArrowReadExample::debug_show() {
     std::cout <<"debug_show code entered \n";
     // step 1: load the batch and then index using the type
     int num_batches = this->_sptr_file_reader.get()->num_record_batches();
-    for (int i = 0; i < num_batches; ++i) {
+    for (int i = 0; i < 1; ++i) {
         std::shared_ptr<arrow::RecordBatch> chunk;
         RETURN_NOT_OK(this->_sptr_file_reader.get()->ReadRecordBatch(i, &chunk));
         std::cout << "attempting to load batch " << i << ", contains " << chunk.get()->num_rows() << " rows and columns " << chunk.get()->num_columns() << "\n";
-        this->process_batch(chunk);
+        RETURN_NOT_OK(this->process_batch(chunk));
     }
     return arrow::Status::OK();
 }
 
+//XXX: somehow there is something strange, if I don't return anything (which is ignored
+// in the calling function I get a bad segmentation fault.
 arrow::Status ArrowReadExample::process_batch(std::shared_ptr<arrow::RecordBatch> batch){
     int num_cols = batch.get()->num_columns();
     for(int i = 0; i < num_cols; i++){
-        batch.get()->column(i);
+        std::shared_ptr<arrow::Array> col = batch.get()->column(i);
+        // we need to get the type and consume
+        arrow::Type::type id = col.get()->type_id();
+        switch(id){
+            case arrow::Type::type::INT32 : RETURN_NOT_OK(consume_int32(col, batch.get()->num_rows()));
+            default: std::cout << "NYI \n";
+        }
     }
+    return arrow::Status::OK();
+}
 
-
+arrow::Status ArrowReadExample::consume_int32(std::shared_ptr<arrow::Array> col, int64_t num_rows){
+    // this is an integer type values
+    // how many values are there?
+    std::cout << "num_rows passed is : " << num_rows << " in co length " << col.get()->length() << "\n";
+    //arrow::NumericArray<arrow::Int32Type>
+    arrow::Array *data1 = col.get();
+    //std::dynamic_pointer_cast<Derived>(basePtr)
+    auto data2 =  std::dynamic_pointer_cast<arrow::Int32Array>(col);
+    for(int64_t i = 0; i < num_rows; i++){
+        if(col.get()->IsValid(i)){
+            std::cout << i << " is  " << data2.get()->Value(i) << "\n"; //raw_values()
+        } else {
+            std::cout << i << " is  NULL\n";
+        }
+    }
+    return arrow::Status::OK();
 }
 
 arrow::Status ArrowReadExample::read() {
