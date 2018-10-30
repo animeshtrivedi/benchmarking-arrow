@@ -18,13 +18,19 @@
 
 #include "common.h"
 #include "arrow-reader-example.h"
+#include "arrow-reader.h"
 
 int main(int argc, char **argv) {
-
+#if 0
   ArrowReadExample *ex = new ArrowReadExample("/");
   std::cout << "location of the object is " << ex << "\n";
   arrow::Status s = ex->init();
   s = ex->debug_show();
   s = ex->read();
+#endif
+  ArrowReader *r = new ArrowReader("/home/atr/zrl/external/github/animeshtrivedi/arrow-on-crail/data/f100-ss-p15.arrow");
+  r->init();
+  r->run();
+  std::cout << r->summary() << "\n";
   return 0;
 }
