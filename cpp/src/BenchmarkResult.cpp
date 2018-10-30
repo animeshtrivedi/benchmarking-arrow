@@ -2,6 +2,8 @@
 // Created by atr on 30.10.18.
 //
 
+#include <string>
+#include <sstream>
 #include "BenchmarkResult.h"
 
 long BenchmarkResult::totalBytesProcessed() {
@@ -24,4 +26,21 @@ double BenchmarkResult::getBandwidthGbps() {
     } else{
         return 0.0;
     }
+}
+
+std::string BenchmarkResult::summary(){
+    std::stringstream ss;
+    ss << "totalRows: " << totalRows() <<
+           " || ints: " << totalInts() <<
+           " , long " << totalLongs() <<
+           " , float4 " << totalFloat4() <<
+           " , double " << totalFloat8() <<
+           " , binary " << totalBinary() <<
+           " binarySize " << totalBinarySize() <<
+           " checksum " << ((long) getChecksum()) <<
+           " || runtimeInNS " << getRunTimeinNS() <<
+           " , totalBytesProcessed " << totalBytesProcessed() <<
+           " , bandwidth " << getBandwidthGbps() << " Gbps. \n";
+    ss.flush();
+    return ss.str();
 }

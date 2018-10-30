@@ -18,7 +18,17 @@ protected:
     long _checksum;
     long _runtime_in_ns;
 public:
-    BenchmarkResult(){}
+    BenchmarkResult(){
+        _total_Ints = 0;
+        _total_Longs  = 0;
+        _total_Float4  = 0;
+        _total_Float8 = 0;
+        _total_Binary = 0;
+        _total_BinarySize = 0;
+        _total_Rows = 0;
+        _checksum = 0;
+        _runtime_in_ns = 0 ;
+    }
     virtual ~BenchmarkResult(){}
     long totalInts() {
         return _total_Ints;
@@ -50,6 +60,7 @@ public:
 
     long totalBytesProcessed();
     double getBandwidthGbps();
+    std::string summary();
 };
 
 #endif //BENCHMARK_ARROW_CPP_BENCHMARKRESULT_H
