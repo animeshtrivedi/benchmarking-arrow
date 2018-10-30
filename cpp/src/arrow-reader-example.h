@@ -22,8 +22,9 @@
 #include <arrow/io/file.h>
 #include <arrow/status.h>
 #include <arrow/ipc/reader.h>
+#include "BenchmarkResult.h"
 
-class ArrowReadExample {
+class ArrowReadExample : public BenchmarkResult {
 private:
     const char *_file_name;
     std::shared_ptr<arrow::Schema> _sptr_schema;
@@ -37,6 +38,9 @@ public:
     arrow::Status debug_show();
     arrow::Status read();
     arrow::Status consume_int32(std::shared_ptr<arrow::Array> col, int64_t num_rows);
+    arrow::Status consume_int64(std::shared_ptr<arrow::Array> col, int64_t num_rows);
+    arrow::Status consume_float4(std::shared_ptr<arrow::Array> col, int64_t num_rows);
+    arrow::Status consume_float8(std::shared_ptr<arrow::Array> col, int64_t num_rows);
 };
 #define BENCHMARK_ARROW_CPP_ARROWREADEREXAMPLE_H
 

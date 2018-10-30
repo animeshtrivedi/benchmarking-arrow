@@ -61,8 +61,10 @@ arrow::Status ArrowReadExample::process_batch(std::shared_ptr<arrow::RecordBatch
         // we need to get the type and consume
         arrow::Type::type id = col.get()->type_id();
         switch(id){
-            case arrow::Type::type::INT32 : RETURN_NOT_OK(consume_int32(col, batch.get()->num_rows()));
-            default: std::cout << "NYI \n";
+            case arrow::Type::type::INT32 : RETURN_NOT_OK(consume_int32(col, batch.get()->num_rows())); break;
+            case arrow::Type::type::INT64 : RETURN_NOT_OK(consume_int64(col, batch.get()->num_rows())); break;
+            case arrow::Type::type::DOUBLE : RETURN_NOT_OK(consume_float8(col, batch.get()->num_rows())); break;
+            default: std::cout << "NYI \n"; break;
         }
     }
     return arrow::Status::OK();
@@ -71,14 +73,59 @@ arrow::Status ArrowReadExample::process_batch(std::shared_ptr<arrow::RecordBatch
 arrow::Status ArrowReadExample::consume_int32(std::shared_ptr<arrow::Array> col, int64_t num_rows){
     // this is an integer type values
     // how many values are there?
-    std::cout << "num_rows passed is : " << num_rows << " in co length " << col.get()->length() << "\n";
+    std::cout << "INT32: num_rows passed is : " << num_rows << " in co length " << col.get()->length() << "\n";
     //arrow::NumericArray<arrow::Int32Type>
-    arrow::Array *data1 = col.get();
-    //std::dynamic_pointer_cast<Derived>(basePtr)
-    auto data2 =  std::dynamic_pointer_cast<arrow::Int32Array>(col);
+    // Inheritance hierarchy is
+    // Array -> FlatArray -> PrimitiveArray -> NumericArray<templated>
+    std::shared_ptr<arrow::Int32Array> data2 = std::dynamic_pointer_cast<arrow::Int32Array>(col);
+    const int* raw_val = data2.get()->raw_values();
+    const uint8_t *raw_bitmap = data2.get()->null_bitmap_data();
     for(int64_t i = 0; i < num_rows; i++){
         if(col.get()->IsValid(i)){
             std::cout << i << " is  " << data2.get()->Value(i) << "\n"; //raw_values()
+            this->_total_Ints++;
+        } else {
+            std::cout << i << " is  NULL\n";
+        }
+    }
+    return arrow::Status::OK();
+}
+
+arrow::Status ArrowReadExample::consume_int64(std::shared_ptr<arrow::Array> col, int64_t num_rows){
+    // this is an integer type values
+    // how many values are there?
+    std::cout << "INT64: num_rows passed is : " << num_rows << " in co length " << col.get()->length() << "\n";
+    //arrow::NumericArray<arrow::Int32Type>
+    // Inheritance hierarchy is
+    // Array -> FlatArray -> PrimitiveArray -> NumericArray<templated>
+    std::shared_ptr<arrow::Int64Array> data2 = std::dynamic_pointer_cast<arrow::Int64Array>(col);
+    const long* raw_val = data2.get()->raw_values();
+    const uint8_t *raw_bitmap = data2.get()->null_bitmap_data();
+    for(int64_t i = 0; i < num_rows; i++){
+        if(col.get()->IsValid(i)){
+            std::cout << i << " is  " << data2.get()->Value(i) << "\n"; //raw_values()
+            this->_total_Longs++;
+        } else {
+            std::cout << i << " is  NULL\n";
+        }
+    }
+    return arrow::Status::OK();
+}
+
+arrow::Status ArrowReadExample::consume_float8(std::shared_ptr<arrow::Array> col, int64_t num_rows) {
+    // this is an integer type values
+    // how many values are there?
+    std::cout << "FLOAT8: num_rows passed is : " << num_rows << " in co length " << col.get()->length() << "\n";
+    //arrow::NumericArray<arrow::Int32Type>
+    // Inheritance hierarchy is
+    // Array -> FlatArray -> PrimitiveArray -> NumericArray<templated>
+    std::shared_ptr<arrow::DoubleArray> data2 = std::dynamic_pointer_cast<arrow::DoubleArray>(col);
+    const double* raw_val = data2.get()->raw_values();
+    const uint8_t *raw_bitmap = data2.get()->null_bitmap_data();
+    for(int64_t i = 0; i < num_rows; i++){
+        if(col.get()->IsValid(i)){
+            std::cout << i << " is  " << data2.get()->Value(i) << "\n"; //raw_values()
+            this->_total_Float8++;
         } else {
             std::cout << i << " is  NULL\n";
         }
