@@ -43,12 +43,13 @@ arrow::Status ArrowReadExample::debug_show() {
     std::cout <<"debug_show code entered \n";
     // step 1: load the batch and then index using the type
     int num_batches = this->_sptr_file_reader.get()->num_record_batches();
-    for (int i = 0; i < 1; ++i) {
+    for (int i = 0; i < num_batches; ++i) {
         std::shared_ptr<arrow::RecordBatch> chunk;
         RETURN_NOT_OK(this->_sptr_file_reader.get()->ReadRecordBatch(i, &chunk));
         std::cout << "attempting to load batch " << i << ", contains " << chunk.get()->num_rows() << " rows and columns " << chunk.get()->num_columns() << "\n";
         RETURN_NOT_OK(this->process_batch(chunk));
     }
+    //TODO: clean up ?
     return arrow::Status::OK();
 }
 

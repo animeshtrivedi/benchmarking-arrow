@@ -39,8 +39,8 @@ public:
     arrow::Status read();
     arrow::Status consume_int32(std::shared_ptr<arrow::Array> col, int64_t num_rows);
     arrow::Status consume_int64(std::shared_ptr<arrow::Array> col, int64_t num_rows);
-    arrow::Status consume_float4(std::shared_ptr<arrow::Array> col, int64_t num_rows);
     arrow::Status consume_float8(std::shared_ptr<arrow::Array> col, int64_t num_rows);
+    //TODO: do a binary column example
 };
 #define BENCHMARK_ARROW_CPP_ARROWREADEREXAMPLE_H
 
