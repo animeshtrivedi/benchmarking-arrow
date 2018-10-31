@@ -27,14 +27,16 @@
 
 class InMemoryFile : public arrow::io::RandomAccessFile {
     const char *_file;
-    std::ifstream *_in;
+    char *buffer;
+    int64_t _read_ptr;
     arrow::MemoryPool *_memory_pool;
+    int setupMemory();
 public:
     explicit InMemoryFile(const char *file){
         _file = file;
-        _in = new std::ifstream(this->_file, std::ifstream::binary);
-        _memory_pool = arrow::default_memory_pool();
         _info(" opening file " << _file << "\n");
+        _memory_pool = arrow::default_memory_pool();
+        setupMemory();
     }
     virtual ~InMemoryFile(){}
     arrow::Status Close() override;

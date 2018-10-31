@@ -18,10 +18,15 @@
 #include<sys/stat.h>
 #include <iostream>
 #include <fstream>
+#include <fcntl.h>
 
 #include "common.h"
 #include "InMemoryFile.h"
 #include "Debug.h"
+
+
+#include <sys/mman.h>
+#include <assert.h>
 
 arrow::Status InMemoryFile::GetSize(int64_t* size){
     //https://stackoverflow.com/questions/5840148/how-can-i-get-a-files-size-in-c/6039648#6039648
@@ -39,22 +44,15 @@ arrow::Status InMemoryFile::GetSize(int64_t* size){
     //*size = in.tellg();
 }
 
-arrow::Status InMemoryFile::ReadAt(int64_t position, int64_t nbytes, int64_t* bytes_read,
-                     void* out){
+arrow::Status InMemoryFile::ReadAt(int64_t position, int64_t nbytes, int64_t* bytes_read, void* out){
     _debug(__FUNCTION__ << "\n");
     RETURN_NOT_OK(Seek(position));
-    // now we should read
-    _in->read(reinterpret_cast<char*>(out), nbytes);
-    if(!_in->good()){
-        std::cout <<" read failed " << _in->rdstate() << "\n";
-        return arrow::Status::IOError("");
-    }
+    memcpy(out, buffer + this->_read_ptr, nbytes);
     *bytes_read = nbytes;
     return arrow::Status::OK();
 }
 
-arrow::Status InMemoryFile::ReadAt(int64_t position, int64_t nbytes,
-                     std::shared_ptr<arrow::Buffer>* out){
+arrow::Status InMemoryFile::ReadAt(int64_t position, int64_t nbytes, std::shared_ptr<arrow::Buffer>* out){
     _debug(__FUNCTION__ << "position " << position << " bytes " << nbytes << " size of the buffer " << *out << " \n");
     // logic copied from HdfsReadableFile.cc from Arrow
     std::shared_ptr<arrow::ResizableBuffer> buffer;
@@ -76,17 +74,13 @@ arrow::Status InMemoryFile::Tell(int64_t* position) const {
 
 arrow::Status InMemoryFile::Seek(int64_t position){
     _debug(__FUNCTION__ << " position " << position << "\n");
-    _in->seekg(position);
-    if(!_in->good()) {
-        std::cout <<" seek failed " << _in->rdstate() << "\n";
-        return arrow::Status::IOError("");
-    }
+    this->_read_ptr = position;
     return arrow::Status::OK();
 }
 
 arrow::Status InMemoryFile::Close(){
     std::cout<< __FUNCTION__ << "\n";
-    return arrow::Status::NotImplemented("NYI");    
+    return arrow::Status::NotImplemented("NYI");
 }
 
 bool InMemoryFile::supports_zero_copy() const {
@@ -96,10 +90,23 @@ bool InMemoryFile::supports_zero_copy() const {
 
 arrow::Status InMemoryFile::Read(int64_t nbytes, int64_t *bytes_read, void *out) {
     std::cout<< __FUNCTION__ << "\n";
-    return arrow::Status::NotImplemented("NYI");    
+    return arrow::Status::NotImplemented("NYI");
 }
 
 arrow::Status InMemoryFile::Read(int64_t nbytes, std::shared_ptr<arrow::Buffer> *out) {
     std::cout<< __FUNCTION__ << "\n";
     return arrow::Status::NotImplemented("NYI");
+}
+
+int InMemoryFile::setupMemory() {
+    int64_t size;
+    this->GetSize(&size);
+    int fd = open(_file, O_RDONLY, 0);
+    assert(fd != -1);
+    //Execute mmap
+    buffer = (char*) mmap(NULL, size, PROT_READ, MAP_SHARED | MAP_POPULATE, fd, 0);
+    assert(mmappedData != MAP_FAILED);
+    _info(_file << " with size " << size << " mapped at " << (void*) buffer << "\n");
+    this->_read_ptr = 0;
+    return 0;
 }
