@@ -22,10 +22,18 @@
 #include <arrow/io/file.h>
 #include <arrow/status.h>
 #include <arrow/ipc/reader.h>
+#include <fstream>
 
 class InMemoryFile : public arrow::io::RandomAccessFile {
+    const char *_file;
+    std::ifstream *_in;
+    arrow::MemoryPool *_memory_pool;
 public:
-    InMemoryFile(){}
+    explicit InMemoryFile(const char *file){
+        _file = file;
+        _in = new std::ifstream(this->_file, std::ifstream::binary);
+        _memory_pool = arrow::default_memory_pool();
+    }
     virtual ~InMemoryFile(){}
     arrow::Status Close() override;
     arrow::Status GetSize(int64_t* size) override;
