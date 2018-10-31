@@ -23,6 +23,7 @@
 #include <arrow/status.h>
 #include <arrow/ipc/reader.h>
 #include <fstream>
+#include "Debug.h"
 
 class InMemoryFile : public arrow::io::RandomAccessFile {
     const char *_file;
@@ -33,6 +34,7 @@ public:
         _file = file;
         _in = new std::ifstream(this->_file, std::ifstream::binary);
         _memory_pool = arrow::default_memory_pool();
+        _info(" opening file " << _file << "\n");
     }
     virtual ~InMemoryFile(){}
     arrow::Status Close() override;
