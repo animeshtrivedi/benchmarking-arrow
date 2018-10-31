@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-
 #include "common.h"
 #include "arrow-reader-example.h"
 #include "arrow-reader.h"
@@ -32,5 +31,11 @@ int main(int argc, char **argv) {
   r->init();
   r->run();
   std::cout << r->summary() << "\n";
+  long csum = r->getChecksum();
+  if( csum != 303414922182153){
+    std::cout<<"Checksum _DOES_NOT_ match " << "\n";
+  } else{
+    std::cout<<"Checksum _MATCHES_ " << "\n";
+  }
   return 0;
 }
