@@ -27,7 +27,7 @@ public class ParseOptions {
     public ParseOptions(){
         options = new Options();
         options.addOption("h", "help", false, "show help.");
-        options.addOption("t", "test", true, "test to perform - ParquetToArrow OR ArrowRead (case in-sensitive).");
+        options.addOption("t", "test", true, "test to perform (case in-sensitive) - DataGen, ParquetToArrow, ArrowRead, ArrowMemBench (this first buffers data in memory).");
         options.addOption("i", "input", true, "input directory containing files.");
         options.addOption("o", "output", true, "output directory location.");
         options.addOption("w", "writeBufferSize", true, "write buffer size, default: 1MB");
