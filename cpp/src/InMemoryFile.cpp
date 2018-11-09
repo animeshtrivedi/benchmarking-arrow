@@ -103,7 +103,7 @@ int InMemoryFile::setupMemory() {
     this->GetSize(&size);
     int fd = open(_file, O_RDONLY, 0);
     assert(fd != -1);
-    //Execute mmap
+    //Execute mmap with MAP_POPULATE to get all pages in memory
     buffer = (char*) mmap(NULL, size, PROT_READ, MAP_SHARED | MAP_POPULATE, fd, 0);
     assert(mmappedData != MAP_FAILED);
     _info(_file << " with size " << size << " mapped at " << (void*) buffer << "\n");

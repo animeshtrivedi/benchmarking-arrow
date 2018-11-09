@@ -21,12 +21,11 @@ set(CMAKE_CXX_COMPILER clang++) # or clang++
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Ofast -ffast-math -funroll-loops -march=native") # get crazy here
 #add_compile_options("-std=c++17")
 
-
-
 find_library(ARROW_LIBRARY arrow HINTS /home/atr/local/lib)
-find_library(GTEST_LIBRARY gtest HINTS /home/atr/local/lib)
+#find_library(GTEST_LIBRARY gtest HINTS /home/atr/local/lib)
 
-link_libraries(pthread ${GTEST_LIBRARY} ${ARROW_LIBRARY})
+#link_libraries(pthread ${GTEST_LIBRARY} ${ARROW_LIBRARY})
+link_libraries(pthread ${ARROW_LIBRARY})
 
 include_directories("${PROJECT_SOURCE_DIR}" "/home/atr/local/include/")
 

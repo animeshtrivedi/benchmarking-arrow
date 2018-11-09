@@ -17,14 +17,14 @@
 
 #include <arrow/array.h>
 #include <arrow/memory_pool.h>
-#include <arrow/type.h>
-#include <arrow/ipc/writer.h>
+#include <arrow/type_fwd.h>
 #include <arrow/ipc/writer.h>
 #include <arrow/ipc/reader.h>
 #include <arrow/io/file.h>
-#include <arrow/test-util.h>
-
+#include <arrow/builder.h>
 #include "arrow-writer-example.h"
+
+#include "common.h"
 
 ArrowWriterExample::ArrowWriterExample() {
     auto memory_pool = arrow::default_memory_pool();
