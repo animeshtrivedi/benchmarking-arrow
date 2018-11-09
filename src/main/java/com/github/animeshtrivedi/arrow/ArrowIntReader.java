@@ -63,19 +63,23 @@ public class ArrowIntReader extends BenchmarkResults {
         this.arrowBlocks = arrowFileReader.getRecordBlocks();
         this.fieldVector = root.getFieldVectors();
         System.err.println("There are " + arrowBlocks.size() + " blocks");
+        if(Configuration.arrowBlockSizeInRows == -1){
+            throw new Exception("set the arrowBlockSizeInRows is needed ");
+        }
         this.items = Configuration.arrowBlockSizeInRows; //only mode in which it will work
+        // the bitmap size is rows/8 + aligned size
         this.bitmapSize = items/8;
         if(items % 8 != 0) {
             bitmapSize++;
         }
-        // align
+        // align the bitmap size to 8 bytes
         if(bitmapSize % 8 != 0){
             bitmapSize+=(8 - (bitmapSize % 8 ));
         }
         if(Configuration.offHeap)
-            this.buf = ByteBuffer.allocateDirect((items * 4) + bitmapSize);
+            this.buf = ByteBuffer.allocateDirect((items * Integer.BYTES) + bitmapSize);
         else
-            this.buf = ByteBuffer.allocate((items * 4) + bitmapSize);
+            this.buf = ByteBuffer.allocate((items * Integer.BYTES) + bitmapSize);
     }
 
     private boolean _verifyContent(String expectedContent, long position) throws IOException {
