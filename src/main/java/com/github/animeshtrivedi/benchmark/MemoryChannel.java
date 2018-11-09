@@ -25,7 +25,7 @@ import java.nio.channels.WritableByteChannel;
 
 public abstract class MemoryChannel implements WritableByteChannel, SeekableByteChannel {
 
-    static MemoryChannel getChannel(){
+    static MemoryChannel getWriteChannel(){
         //this.cx = new TimedMemoryChannel();
         if(Configuration.offHeap){
             return new OffHeapMemoryChannel();
@@ -35,6 +35,7 @@ public abstract class MemoryChannel implements WritableByteChannel, SeekableByte
     }
 
     final public int read(ByteBuffer dst) throws IOException {
+        //TODO: what is the cost of this?
         if(dst instanceof DirectBuffer)
             return readDirectUnsafe(dst);
         else

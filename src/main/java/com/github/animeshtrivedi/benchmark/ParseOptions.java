@@ -29,6 +29,7 @@ public class ParseOptions {
         options.addOption("h", "help", false, "show help.");
         options.addOption("t", "test", true, "test to perform (case in-sensitive) - DataGen, ParquetToArrow, ArrowRead, ArrowMemBench (this first buffers data in memory).");
         options.addOption("i", "input", true, "input directory containing files.");
+        options.addOption("it", "inputType", true, "input file type, Arrow or Parquet (only, case-insensitive).");
         options.addOption("o", "output", true, "output directory location.");
         options.addOption("w", "writeBufferSize", true, "write buffer size, default: 1MB");
         options.addOption("p", "parallel", true, "number of parallel instances");
@@ -72,6 +73,16 @@ public class ParseOptions {
             if (cmd.hasOption("i")) {
                 Configuration.inputDir = cmd.getOptionValue("i").trim();
             }
+            if (cmd.hasOption("it")) {
+                String t = cmd.getOptionValue("it").trim();
+                if(t.compareToIgnoreCase("parquet") == 0){
+                    Configuration.inputFileType = InputType.PARQUET;
+                }else if(t.compareToIgnoreCase("arrow") == 0){
+                    Configuration.inputFileType = InputType.ARROW;
+                } else {
+                    throw new ParseException("Illegal name for a file type " + t);
+                }
+            }
             if (cmd.hasOption("o")) {
                 Configuration.outputDir = cmd.getOptionValue("o").trim();
             }
@@ -111,16 +122,16 @@ public class ParseOptions {
                 Configuration.binSize = Integer.parseInt(cmd.getOptionValue("s").trim());
             }
             if (cmd.hasOption("n")) {
-                 String name = cmd.getOptionValue("n").trim();
-                 if(name.compareToIgnoreCase("int") == 0)
-                     Configuration.type = GeneratorFactory.INT_GENERATOR;
-                 else if (name.compareToIgnoreCase("binary") == 0) {
+                String name = cmd.getOptionValue("n").trim();
+                if(name.compareToIgnoreCase("int") == 0)
+                    Configuration.type = GeneratorFactory.INT_GENERATOR;
+                else if (name.compareToIgnoreCase("binary") == 0) {
                     Configuration.type = GeneratorFactory.BIN_GENERATOR;
                 } else if (name.compareToIgnoreCase("long") == 0) {
-                     Configuration.type = GeneratorFactory.LONG_GENERATOR;
-                 } else {
-                     throw new ParseException("Illegal name for a type " + name);
-                 }
+                    Configuration.type = GeneratorFactory.LONG_GENERATOR;
+                } else {
+                    throw new ParseException("Illegal name for a type " + name);
+                }
             }
             if (cmd.hasOption("c")) {
                 Configuration.numCols = Integer.parseInt(cmd.getOptionValue("c").trim());

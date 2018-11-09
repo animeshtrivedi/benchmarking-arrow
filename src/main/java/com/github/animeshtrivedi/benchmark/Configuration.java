@@ -34,6 +34,7 @@ public class Configuration {
     static boolean isFileReadingInvolved = true;
     // input
     static String inputDir = null;
+    static InputType inputFileType = InputType.PARQUET;
     static String outputDir = null;
 
     // number of parallel instances

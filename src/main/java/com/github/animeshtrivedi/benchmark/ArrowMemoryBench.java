@@ -29,9 +29,12 @@ public class ArrowMemoryBench extends BenchmarkResults {
     private Thread tx;
 
     private void _start(){
-        this.cx = MemoryChannel.getChannel();
+        // when we are generating data or converting a parquet files, we need a write
+        // channel
+        this.cx = MemoryChannel.getWriteChannel();
     }
     private void _end(){
+        // we start the processing thread here
         this.tx.start();
     }
 
@@ -48,12 +51,17 @@ public class ArrowMemoryBench extends BenchmarkResults {
         _end();
     }
 
-    public ArrowMemoryBench(String parquetFileName) throws Exception {
+    public ArrowMemoryBench(String fileName) throws Exception {
         _start();
-        // in this constructor we read the parquet file and hold in memory
-        ParquetToArrow parquetFileReader = new ParquetToArrow();
-        parquetFileReader.setInputOutput(parquetFileName, this.cx);
-        this.tx = new Thread(parquetFileReader);
+        if(Configuration.inputFileType == InputType.PARQUET) {
+            // in this constructor we read the parquet file and hold in memory
+            ParquetToArrow parquetFileReader = new ParquetToArrow();
+            parquetFileReader.setInputOutput(fileName, this.cx);
+            this.tx = new Thread(parquetFileReader);
+        } else {
+            // we are using a arrow file type
+            this.tx = new Thread(new ArrowFileDumper(fileName, this.cx));
+        }
         _end();
     }
 
@@ -63,7 +71,7 @@ public class ArrowMemoryBench extends BenchmarkResults {
             if(this.generator != null){
                 logger.info(this.generator.toString());
             } else {
-                logger.info("parquet data reading finished");
+                logger.info("file data reading finished");
             }
             //TODO: somehow this is the key to move the performance form ~100 Gbps to 150+ Gbps on 16 cores
             // I don't know running GC here has a different effect than running in the start and end of
