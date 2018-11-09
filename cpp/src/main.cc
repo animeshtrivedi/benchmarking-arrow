@@ -27,7 +27,16 @@ int main(int argc, char **argv) {
   s = ex->debug_show();
   s = ex->read();
 #endif
-  ArrowReader *r = new ArrowReader("/home/atr/zrl/external/github/animeshtrivedi/arrow-on-crail/data/f100-ss-p15.arrow");
+    ArrowReader *r = NULLPTR;
+  if(argc == 2){
+      // use the first one as the file name
+      std::cout<<"Opening the file : " << argv[1] << "\n";
+      r = new ArrowReader(argv[1]);
+  } else {
+      std::cout<<"Opening the _DEFAULT_ file : /home/atr/zrl/external/github/animeshtrivedi/arrow-on-crail/data/f100-ss-p15.arrow" "\n";
+      r = new ArrowReader("/home/atr/zrl/external/github/animeshtrivedi/arrow-on-crail/data/f100-ss-p15.arrow");
+  }
+
   r->init();
   r->run();
   std::cout << r->summary() << "\n";
