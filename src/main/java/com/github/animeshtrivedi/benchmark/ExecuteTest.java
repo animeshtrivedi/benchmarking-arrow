@@ -31,8 +31,11 @@ public class ExecuteTest {
             DataInterface[] ops = new DataInterface[Configuration.parallel];
 
             if (Configuration.testName.compareToIgnoreCase("datagen") == 0) {
+                if(Configuration.outputDir == null){
+                    throw new Exception("Data output directory is null, please give a valid name using -o");
+                }
                 for (int i = 0; i < Configuration.parallel; i++) {
-                    HDFSWritableByteChannel w = new HDFSWritableByteChannel(Configuration.outputDir+i);
+                    HDFSWritableByteChannel w = new HDFSWritableByteChannel(Configuration.outputDir+"/part-"+i);
                     ArrowDataGenerator temp = GeneratorFactory.generator(w);
                     ops[i] = temp;
                 }
