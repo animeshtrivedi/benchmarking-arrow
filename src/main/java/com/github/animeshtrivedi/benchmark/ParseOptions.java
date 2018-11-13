@@ -48,7 +48,8 @@ public class ParseOptions {
         options.addOption("b", "run gc", false, "-b enables running GC whenever sensible");
         options.addOption("e", "reader type", true, "valid types are: default, holder, unsafe");
         options.addOption("j", "blockSizeInBytes", true, "Arrow block size in bytes");
-        //a, b, c, d, e, [f], g, h, i, j, k, [l], [m], n, o, p, [q], r, s, t, [u], v, w, x, [y], [z],
+        options.addOption("l", "genrateOneNull", false, "Generate one item per Arrow block as null for testing");
+        //a, b, c, d, e, [f], g, h, i, j, k, l, [m], n, o, p, [q], r, s, t, [u], v, w, x, [y], [z],
     }
 
     public void show_help() {
@@ -94,6 +95,9 @@ public class ParseOptions {
             }
             if (cmd.hasOption("x")) {
                 Configuration.xcode = true;
+            }
+            if (cmd.hasOption("l")) {
+                Configuration.generateOneNull = true;
             }
             if (cmd.hasOption("a")) {
                 Configuration.offHeap = true;

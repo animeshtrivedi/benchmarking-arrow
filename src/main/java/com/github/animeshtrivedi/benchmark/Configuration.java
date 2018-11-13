@@ -65,6 +65,7 @@ public class Configuration {
     public static boolean verbose = false;
     public static boolean offHeap = false;
     public static boolean runGC = false;
+    public static boolean generateOneNull = false;
 
     public static String readerType = "default";
 

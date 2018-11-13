@@ -16,6 +16,7 @@
  */
 package com.github.animeshtrivedi.generator;
 
+import com.github.animeshtrivedi.benchmark.Configuration;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.types.Types;
@@ -41,10 +42,14 @@ public class IntegerGenerator extends ArrowDataGenerator {
         for (int i = startIndex; i < endIndex; i++) {
             intVector.setSafe(i, 1, i);
         }
-        // for debugging mark one NULL
-        //intVector.setSafe(endIndex/2, 0, 0);
-        this.totalInts+=(endIndex - startIndex);
-        //but we generated all integers
+        if(Configuration.generateOneNull) {
+            // for debugging mark one NULL
+            intVector.setSafe(endIndex / 2, 0, 0);
+            this.totalInts+=(endIndex - startIndex - 1);
+        }else{
+            this.totalInts+=(endIndex - startIndex);
+        }
+        //but we say that we have generate space for all integers
         return (endIndex - startIndex);
     }
 
