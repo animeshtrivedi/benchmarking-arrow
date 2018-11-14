@@ -19,7 +19,6 @@
 #define BENCHMARK_ARROW_CPP_PEAKPERFORMANCE_H
 
 
-#include <stdint-gcc.h>
 #include <iostream>
 #include "BenchmarkResult.h"
 
