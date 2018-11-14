@@ -711,3 +711,10 @@ to build a RDMA cache.
 Store_Sales performance
 
 
+[November 12]
+* Java ~11 Gbps, C++ 45 Gbps
+
+Q: Is it a JIT problem - No, in the first run we have 10.5 Gbps and second run 11.7 Gbps. [For using the holder
+API, and not with the -x path]
+
+Q:

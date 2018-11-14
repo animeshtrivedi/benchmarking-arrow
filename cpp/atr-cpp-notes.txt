@@ -34,9 +34,6 @@ Now to compile your programs that uses gtest, you have to link it with:
 
 -lgtest -lgtest_main
 
-
-
-
 So, there are RecordBatchFileReader and RecordBatchFileWriter. These inherit from RecordBatchStreamWriter
 and from RecordBatchWriter (and associated reader classes)
 
@@ -66,4 +63,5 @@ make -j ?? && make install
 
 Make sure LD_LIBRARY_PATH is set properly, it was picked up immediately.
 
-Next missing is gtest library
+
+***

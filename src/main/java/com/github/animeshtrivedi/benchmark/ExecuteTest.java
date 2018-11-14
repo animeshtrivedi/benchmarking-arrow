@@ -68,7 +68,7 @@ public class ExecuteTest {
                 logger.info("... going to wait for them to finish ");
                 for (int i = 0; i < Configuration.parallel; i++) {
                     tempArr[i].finishInit();
-                    logger.info("...\t finished [" + i + "] ");
+                    logger.info("...\t finished? [" + i + "] ");
                     ops[i] = tempArr[i];
                 }
                 RunGC.getInstance().runGC();

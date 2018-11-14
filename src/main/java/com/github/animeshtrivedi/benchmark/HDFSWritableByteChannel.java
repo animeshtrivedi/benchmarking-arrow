@@ -34,6 +34,7 @@ public class HDFSWritableByteChannel implements WritableByteChannel {
         this.isOpen = true;
         this.tempBuffer = new byte[Configuration.writeBufferSize];
         try {
+            System.out.println(" -> output path is : " + fullPath);
             Path path = new Path(fullPath);
             org.apache.hadoop.conf.Configuration hadoopConf = new org.apache.hadoop.conf.Configuration();
             FileSystem hadoopFS = FileSystem.get(path.toUri(), hadoopConf);

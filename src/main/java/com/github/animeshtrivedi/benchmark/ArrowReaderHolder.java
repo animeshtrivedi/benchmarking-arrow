@@ -95,14 +95,27 @@ public class ArrowReaderHolder extends ArrowReader {
     }
 
     final protected void consumeInt4(IntVector vector) {
-        int valCount = vector.getValueCount();
-        for(int i = 0; i < valCount; i++) {
-            vector.get(i, intHolder);
-            if (intHolder.isSet == 1) {
-                intCount += 1;
-                checksum+=intHolder.value;
+        final int valCount = vector.getValueCount();
+        final NullableIntHolder holx = new NullableIntHolder();
+        final boolean allValid = vector.getNullCount() == 0;
+        long totalIntx = 0, checkSum = 0;
+        if (allValid) {
+            for (int i = 0; i < valCount; i++) {
+                vector.get(i, holx);
+                totalIntx++;
+                checkSum += holx.value;
+            }
+        } else {
+            for (int i = 0; i < valCount; i++) {
+                vector.get(i, holx);
+                if (holx.isSet == 1) {
+                    totalIntx++;
+                    checkSum += holx.value;
+                }
             }
         }
+        this.intCount+=totalIntx;
+        this.checksum+=checkSum;
     }
 
     final protected void consumeBigInt(BigIntVector vector) {
@@ -110,7 +123,7 @@ public class ArrowReaderHolder extends ArrowReader {
         for(int i = 0; i < valCount; i++){
             vector.get(i, longHolder);
             if(longHolder.isSet == 1){
-                longCount+=1;
+                longCount++;
                 checksum+=longHolder.value;
             }
         }
@@ -121,7 +134,7 @@ public class ArrowReaderHolder extends ArrowReader {
         for(int i = 0; i < valCount; i++){
             vector.get(i, binHolder);
             if(binHolder.isSet == 1){
-                binaryCount+=1;
+                binaryCount++;
                 int length = binHolder.end  - binHolder.start;
                 //this.checksum+=length;
                 this.binarySizeCount+=length;

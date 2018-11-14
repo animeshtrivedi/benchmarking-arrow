@@ -20,26 +20,42 @@ import org.apache.arrow.vector.*;
 
 public class ArrowReaderUnsafe extends ArrowReader {
 
-    private boolean isNull(long baseAddress, int rowIndex){
+    ArrowReaderUnsafe(){}
+
+    private boolean isValid(long baseAddress, int rowIndex){
         final int byteIndex = rowIndex >> 3;
         final byte b = Platform.getByte(null, baseAddress+byteIndex);
         final int bitIndex = rowIndex & 7;
+        // v1 - default from the arrow source code
         //return Long.bitCount(b & (1L << bitIndex)) == 0;
-        return (b & (1L << bitIndex)) == 0;
+        //v2
+        return (b & (1L << bitIndex)) != 0;
     }
 
     final public void consumeInt4(IntVector vector) {
-        int valCount = vector.getValueCount();
-        long valididtyAddress = vector.getValidityBufferAddress();
+        final int valCount = vector.getValueCount();
+        final long valididtyAddress = vector.getValidityBufferAddress();
+        // this has lots of calculations
+        final boolean allValid = false; //vector.getNullCount() == 0;
         long dataAddress = vector.getDataBufferAddress();
-        for(int i = 0; i < valCount; i++) {
-            if (!isNull(valididtyAddress, i)) {
-                //if (vector.isSet(i) == 1) {
-                this.intCount++;
-                this.checksum += Platform.getInt(null, dataAddress);
+        long totalIntx = 0, checksum = 0;
+        if(allValid){
+            for (int i = 0; i < valCount; i++) {
+                totalIntx++;
+                checksum += Platform.getInt(null, dataAddress);
+                dataAddress += 4;//IntVector.TYPE_WIDTH;
             }
-            dataAddress += IntVector.TYPE_WIDTH;
+        } else {
+            for (int i = 0; i < valCount; i++) {
+                if(isValid(valididtyAddress, i)) {
+                    totalIntx++;
+                    checksum += Platform.getInt(null, dataAddress);
+                }
+                dataAddress += 4;//IntVector.TYPE_WIDTH;
+            }
         }
+        this.intCount+=totalIntx;
+        this.checksum+=checksum;
     }
 
     final protected void consumeBigInt(BigIntVector vector) {
@@ -47,7 +63,7 @@ public class ArrowReaderUnsafe extends ArrowReader {
         long valididtyAddress = vector.getValidityBufferAddress();
         long dataAddress = vector.getDataBufferAddress();
         for(int i = 0; i < valCount; i++) {
-            if (!isNull(valididtyAddress, i)) {
+            if (isValid(valididtyAddress, i)) {
                 this.longCount++;
                 this.checksum += Platform.getLong(null, dataAddress);
             }
@@ -60,7 +76,7 @@ public class ArrowReaderUnsafe extends ArrowReader {
         long valididtyAddress = vector.getValidityBufferAddress();
         long dataAddress = vector.getDataBufferAddress();
         for(int i = 0; i < valCount; i++) {
-            if (!isNull(valididtyAddress, i)) {
+            if (isValid(valididtyAddress, i)) {
                 this.float4Count++;
                 this.checksum += Platform.getFloat(null, dataAddress);
             }
@@ -73,7 +89,7 @@ public class ArrowReaderUnsafe extends ArrowReader {
         long valididtyAddress = vector.getValidityBufferAddress();
         long dataAddress = vector.getDataBufferAddress();
         for (int i = 0; i < valCount; i++) {
-            if (!isNull(valididtyAddress, i)) {
+            if (isValid(valididtyAddress, i)) {
                 this.float8Count++;
                 this.checksum += Platform.getDouble(null, dataAddress);
             }
@@ -88,7 +104,7 @@ public class ArrowReaderUnsafe extends ArrowReader {
         long dataAddress = vector.getDataBufferAddress();
         long offsetAddress = vector.getOffsetBufferAddress();
         for (int i = 0; i < valCount; i++) {
-            if (!isNull(valididtyAddress, i)) {
+            if (isValid(valididtyAddress, i)) {
                 int start = Platform.getInt(null, offsetAddress);
                 int length = Platform.getInt(null, offsetAddress + BaseVariableWidthVector.OFFSET_WIDTH) - start;
                 this.binaryCount++;

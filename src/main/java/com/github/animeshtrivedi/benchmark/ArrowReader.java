@@ -89,14 +89,19 @@ public class ArrowReader extends BenchmarkResults {
     }
 
     private void _init() throws Exception {
+        logger.info(" _init function to setup ArrowReader with schema");
         //this.allocator = new TracerAllocator(new DebugAllocatorListener(), Integer.MAX_VALUE);
         //this.allocator = new TracerAllocator(Integer.MAX_VALUE);
         this.allocator = new RootAllocator(Integer.MAX_VALUE);
         this.arrowFileReader = new ArrowFileReader(new SeekableReadChannel(this.rchannel),
                 this.allocator);
+        logger.info(" _init 1");
         this.root = arrowFileReader.getVectorSchemaRoot();
+        logger.info(" _init 2");
         this.arrowBlocks = arrowFileReader.getRecordBlocks();
+        logger.info(" _init 3");
         this.fieldVector = root.getFieldVectors();
+        logger.info(" _init DONE");
     }
 
     protected void consumeFloat4(Float4Vector vector) {
@@ -255,29 +260,36 @@ public class ArrowReader extends BenchmarkResults {
             Long s2 = System.nanoTime();
             // TODO: what is this size?
             int size = arrowBlocks.size();
-            System.err.println(" size " + size);
+            System.err.println(" number of arrow blocks are " + size);
             this.timestamps = new long[size*2];
+            long avg_load =0, avg_consume = 0;
             for (int i = 0; i < size; i++) {
                 this.timestamps[i] = System.nanoTime();
                 ArrowBlock rbBlock = arrowBlocks.get(i);
-                logger.info(i + " " + JavaUtils.toString(rbBlock));
+                //logger.info(i + " " + JavaUtils.toString(rbBlock));
                 if (!arrowFileReader.loadRecordBatch(rbBlock)) {
                     throw new IOException("Expected to read record batch");
                 }
                 this.totalRows += root.getRowCount();
                 this.timestamps[size + i] = System.nanoTime();
                 this.timestamps[i] = this.timestamps[size + i] - this.timestamps[i];
-                consumeGeneric();
+                //consumeGeneric();
                 //consumeUnRolledStoreSales();
+                consumeInt4((IntVector) fieldVector.get(0));
                 this.timestamps[size + i] = System.nanoTime() - this.timestamps[size + i];
             }
             long s3 = System.nanoTime();
             this.runtimeInNS = s3 - s2;
             arrowFileReader.close();
             for (int i = 0; i < size; i++) {
-                System.err.println("\t runstamp: (load) " + Utils.commaLongNumber(timestamps[i]) + " + (consume) " + Utils.commaLongNumber(timestamps[size + i]) + " = " + Utils.commaLongNumber(timestamps[i] + timestamps[i + size]) + " nanosec");
-
+                //System.err.println("\t runstamp: (load) " + Utils.commaLongNumber(timestamps[i]) + " + (consume) " + Utils.commaLongNumber(timestamps[size + i]) + " = " + Utils.commaLongNumber(timestamps[i] + timestamps[i + size]) + " nanosec");
+                avg_load+=timestamps[i];
+                avg_consume+=timestamps[size + i];
             }
+            avg_load/=size;
+            avg_consume/=size;
+            System.err.println("AVG load " + Utils.commaLongNumber(avg_load) + " + consume " + Utils.commaLongNumber(avg_consume) + " nanosec");
+
         } catch (Exception e) {
             e.printStackTrace();
         }
