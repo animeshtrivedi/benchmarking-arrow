@@ -137,16 +137,26 @@ public class ArrowIntReader extends BenchmarkResults {
     }
 
     public void runOnHeap(){
+        long avg_load = 0, avg_consume = 0;
         try {
             // reading the file block by block
             for (int i = 0; i < arrowBlocks.size(); i++) {
+                long s = System.nanoTime();
                 //System.err.println("\t " + JavaUtils.toString(arrowBlocks.get(i)));
                 ArrowBlock block = arrowBlocks.get(i);
                 this.channel.position(block.getOffset() + block.getMetadataLength());
                 buf.clear();
+                // clear the buffer and reuse it again and again
                 this.channel.read(buf);
+                long s2 = System.nanoTime();
                 consumeIntBatchOnHeap(buf, bitmapSize, (int) block.getBodyLength());
+                long s3= System.nanoTime();
+                avg_load+=(s2 - s);
+                avg_consume+=(s3 -s2);
             }
+            avg_load/=arrowBlocks.size();
+            avg_consume/=arrowBlocks.size();
+            System.err.println(" AVG load = " + avg_load + " ns, consume = " + avg_consume + " \n");
         } catch (Exception e) {
             e.printStackTrace();
         }
