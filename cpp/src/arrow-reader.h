@@ -25,6 +25,7 @@
 #include "BenchmarkResult.h"
 #include "common.h"
 
+#define DO_CONST
 
 class ArrowReader : public BenchmarkResult {
 private:
@@ -33,16 +34,23 @@ private:
     std::shared_ptr<arrow::ipc::RecordBatchFileReader> _sptr_file_reader;
     std::shared_ptr<arrow::io::MemoryMappedFile> _sptr_mmaped_filex;
     std::shared_ptr<arrow::io::RandomAccessFile> _sptr_file;
-    arrow::Status process_batch(std::shared_ptr<arrow::RecordBatch> batch);
 
 public:
     explicit ArrowReader(const char* filename);
-    arrow::Status consume_int32(std::shared_ptr<arrow::Array> col);
-    arrow::Status consume_int64(std::shared_ptr<arrow::Array> col);
-    arrow::Status consume_float8(std::shared_ptr<arrow::Array> col);
-    arrow::Status init();
-    arrow::Status run();
-    arrow::Status runWithDebug();
+
+#ifdef DO_CONST
+    int process_batch(std::shared_ptr<arrow::RecordBatch> batch, long &intCount, long &checkSum) const;
+    int consume_int32(std::shared_ptr<arrow::Array> col,  long &intCount, long &checkSum) const;
+#else
+    int process_batch(std::shared_ptr<arrow::RecordBatch> batch);
+    int consume_int32(std::shared_ptr<arrow::Array> col);
+#endif
+
+    int consume_int64(std::shared_ptr<arrow::Array> col);
+    int consume_float8(std::shared_ptr<arrow::Array> col);
+    int init();
+    int run();
+    int runWithDebug();
 };
 
 

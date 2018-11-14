@@ -21,13 +21,15 @@
 
 #include <iostream>
 #include <chrono>
+#include <arrow/array.h>
 
+static constexpr uint8_t kBitmask[] = {1, 2, 4, 8, 16, 32, 64, 128};
 
 ArrowReader::ArrowReader(const char* filename){
     this->_file_name = filename;
 }
 
-arrow::Status ArrowReader::init() {
+int ArrowReader::init() {
     // Step 1. open the file - mmap
     arrow::Status st = arrow::io::MemoryMappedFile::Open(this->_file_name,
             arrow::io::FileMode::READ,
@@ -49,25 +51,12 @@ arrow::Status ArrowReader::init() {
     this->_sptr_schema = this->_sptr_file_reader.get()->schema();
     // step 4 find blocks
     int num_blocks = this->_sptr_file_reader.get()->num_record_batches();
-    return arrow::Status::OK();
+    return 0;
 }
 
-arrow::Status ArrowReader::run() {
-    auto start = std::chrono::high_resolution_clock::now();
-    // step 1: load the batch and then index using the type
-    int num_batches = this->_sptr_file_reader.get()->num_record_batches();
-    for (int i = 0; i < num_batches; ++i) {
-        std::shared_ptr<arrow::RecordBatch> chunk;
-        RETURN_NOT_OK(this->_sptr_file_reader.get()->ReadRecordBatch(i, &chunk));
-        RETURN_NOT_OK(this->process_batch(chunk));
-    }
-    //TODO: clean up ?
-    auto end = std::chrono::high_resolution_clock::now();
-    this->_runtime_in_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-    return arrow::Status::OK();
-}
 
-arrow::Status ArrowReader::runWithDebug() {
+int ArrowReader::runWithDebug() {
+#if 0
     int num_batches = this->_sptr_file_reader.get()->num_record_batches();
     //int64_t *load_time = new int64_t[num_batches];
     //int64_t *process_time = new int64_t[num_batches];
@@ -77,11 +66,10 @@ arrow::Status ArrowReader::runWithDebug() {
     for (int i = 0; i < num_batches; ++i) {
         std::shared_ptr<arrow::RecordBatch> chunk;
         auto s1 = std::chrono::high_resolution_clock::now();
-        RETURN_NOT_OK(this->_sptr_file_reader.get()->ReadRecordBatch(i, &chunk));
+        this->_sptr_file_reader.get()->ReadRecordBatch(i, &chunk);
         auto s2 = std::chrono::high_resolution_clock::now();
-        RETURN_NOT_OK(this->process_batch(chunk));
+        this->process_batch(chunk);
         auto s3 = std::chrono::high_resolution_clock::now();
-
         //load_time[i] = std::chrono::duration_cast<std::chrono::nanoseconds>(s2 - s1).count();
         //process_time[i] = std::chrono::duration_cast<std::chrono::nanoseconds>(s3 - s2).count();
         avg_load+=std::chrono::duration_cast<std::chrono::nanoseconds>(s2 - s1).count(); //load_time[i];
@@ -92,39 +80,137 @@ arrow::Status ArrowReader::runWithDebug() {
     this->_runtime_in_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
     //now print these details:
     std::cout << " load " << avg_load/num_batches << " nsec, consume " << avg_process/num_batches << " nsec \n";
-    return arrow::Status::OK();
+#endif
+    return 0;
 }
 
-arrow::Status  ArrowReader::process_batch(std::shared_ptr<arrow::RecordBatch> batch){
-    int num_cols = batch.get()->num_columns();
+#ifdef DO_CONST
+int ArrowReader::run() {
+    const std::shared_ptr<arrow::ipc::RecordBatchFileReader> localPtr = this->_sptr_file_reader;
+    long checkSum = 0, intCount = 0;
+    auto start = std::chrono::high_resolution_clock::now();
+    // step 1: load the batch and then index using the type
+    int num_batches = localPtr.get()->num_record_batches();
+    for (int i = 0; i < num_batches; ++i) {
+        std::shared_ptr<arrow::RecordBatch> chunk;
+        localPtr.get()->ReadRecordBatch(i, &chunk);
+        this->process_batch(chunk, intCount, checkSum);
+    }
+    //TODO: clean up ?
+    auto end = std::chrono::high_resolution_clock::now();
+    this->_runtime_in_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+    this->_checksum = checkSum;
+    this->_total_Ints = intCount;
+    return 0;
+}
+
+int ArrowReader::process_batch(std::shared_ptr<arrow::RecordBatch> batch,  long &intCount, long &checkSum) const {
+    int num_cols = batch.get()->num_columns(), ret = -1;
     for(int i = 0; i < num_cols; i++){
         std::shared_ptr<arrow::Array> col = batch.get()->column(i);
         // we need to get the type and consume
         arrow::Type::type id = col.get()->type_id();
         switch(id){
-            case arrow::Type::type::INT32 : RETURN_NOT_OK(consume_int32(col)); break;
-            case arrow::Type::type::INT64 : RETURN_NOT_OK(consume_int64(col)); break;
-            case arrow::Type::type::DOUBLE : RETURN_NOT_OK(consume_float8(col)); break;
+            case arrow::Type::type::INT32 : ret = consume_int32(col, intCount, checkSum); break;
             default: std::cout << "NYI \n"; break;
         }
     }
-    return arrow::Status::OK();
+    return ret;
 }
 
-arrow::Status ArrowReader::consume_int32(std::shared_ptr<arrow::Array> col){
-    std::shared_ptr<arrow::Int32Array> data2 = std::dynamic_pointer_cast<arrow::Int32Array>(col);
-    const int* raw_val = data2.get()->raw_values();
-    for(int64_t i = 0; i < col.get()->length(); i++){
-        // for all valid values, the isValid is optimized to return immediately by checking if the bitmap is NULL
-        if(col.get()->IsValid(i)){
-            this->_total_Ints++;
-            this->_checksum+= raw_val[i];
+int ArrowReader::consume_int32(std::shared_ptr<arrow::Array> col, long &intCount, long &checkSum) const {
+    const int* const raw_val = std::dynamic_pointer_cast<arrow::Int32Array>(col).get()->raw_values();
+    const int64_t items = col.get()->length();
+    // get the raw data here
+    const std::shared_ptr<arrow::ArrayData> data = col.get()->data();
+    // get the raw bitmap
+    const uint8_t *bitmap = col.get()->null_bitmap_data();
+    // use the local variables instead of using the class
+    long intsx = 0, checksumx = 0;
+    if(bitmap == NULLPTR){
+        // fast path
+        for (int64_t i = 0; i < items; i++){
+            checksumx+=raw_val[i];
+        }
+        intsx = items;
+    } else {
+        // slow path
+        for (int64_t i = 0, j = data->offset; i < items; i++, j++) {
+            if ((bitmap[j >> 3] & kBitmask[j & 0x07]) != 0){
+                intsx++;
+                checksumx += raw_val[i];
+            }
         }
     }
-    return arrow::Status::OK();
+    intCount+=intsx;
+    checkSum+=checksumx;
+    return 0;
 }
 
-arrow::Status ArrowReader::consume_int64(std::shared_ptr<arrow::Array> col){
+#else
+int ArrowReader::run() {
+    const std::shared_ptr<arrow::ipc::RecordBatchFileReader> localPtr = this->_sptr_file_reader;
+    auto start = std::chrono::high_resolution_clock::now();
+    // step 1: load the batch and then index using the type
+    int num_batches = localPtr.get()->num_record_batches();
+    for (int i = 0; i < num_batches; ++i) {
+        std::shared_ptr<arrow::RecordBatch> chunk;
+        localPtr.get()->ReadRecordBatch(i, &chunk);
+        this->process_batch(chunk);
+    }
+    //TODO: clean up ?
+    auto end = std::chrono::high_resolution_clock::now();
+    this->_runtime_in_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+    return 0;
+}
+
+int ArrowReader::process_batch(std::shared_ptr<arrow::RecordBatch> batch) {
+    int num_cols = batch.get()->num_columns(), ret = -1;
+    for(int i = 0; i < num_cols; i++){
+        std::shared_ptr<arrow::Array> col = batch.get()->column(i);
+        // we need to get the type and consume
+        arrow::Type::type id = col.get()->type_id();
+        switch(id){
+            case arrow::Type::type::INT32 : ret = consume_int32(col); break;
+            case arrow::Type::type::INT64 : ret = consume_int64(col); break;
+            case arrow::Type::type::DOUBLE : ret = consume_float8(col); break;
+            default: std::cout << "NYI \n"; break;
+        }
+    }
+    return ret;
+}
+
+int ArrowReader::consume_int32(std::shared_ptr<arrow::Array> col){
+    const int* const raw_val = std::dynamic_pointer_cast<arrow::Int32Array>(col).get()->raw_values();
+    const int64_t items = col.get()->length();
+    // get the raw data here
+    const std::shared_ptr<arrow::ArrayData> data = col.get()->data();
+    // get the raw bitmap
+    const uint8_t *bitmap = col.get()->null_bitmap_data();
+    // use the local variables instead of using the class
+    long ints = 0, checksum = 0;
+    if(bitmap == NULLPTR){
+        // fast path
+        for (int64_t i = 0; i < items; i++){
+            checksum+=raw_val[i];
+        }
+        ints = items;
+    } else {
+        // slow path
+        for (int64_t i = 0, j = data->offset; i < items; i++, j++) {
+            if ((bitmap[j >> 3] & kBitmask[j & 0x07]) != 0){
+                ints++;
+                checksum += raw_val[i];
+            }
+        }
+    }
+    this->_total_Ints+=ints;
+    this->_checksum+=checksum;
+    return 0;
+}
+#endif
+
+int ArrowReader::consume_int64(std::shared_ptr<arrow::Array> col){
     std::shared_ptr<arrow::Int64Array> data2 = std::dynamic_pointer_cast<arrow::Int64Array>(col);
     const long* raw_val = data2.get()->raw_values();
     for(int64_t i = 0; i < col.get()->length(); i++){
@@ -133,10 +219,10 @@ arrow::Status ArrowReader::consume_int64(std::shared_ptr<arrow::Array> col){
             this->_checksum+= raw_val[i];
         }
     }
-    return arrow::Status::OK();
+    return 0;
 }
 
-arrow::Status ArrowReader::consume_float8(std::shared_ptr<arrow::Array> col){
+int ArrowReader::consume_float8(std::shared_ptr<arrow::Array> col){
     std::shared_ptr<arrow::DoubleArray> data2 = std::dynamic_pointer_cast<arrow::DoubleArray>(col);
     const double * raw_val = data2.get()->raw_values();
     for(int64_t i = 0; i < col.get()->length(); i++){
@@ -145,5 +231,5 @@ arrow::Status ArrowReader::consume_float8(std::shared_ptr<arrow::Array> col){
             this->_checksum+=raw_val[i];
         }
     }
-    return arrow::Status::OK();
+    return 0;
 }

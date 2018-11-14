@@ -1,0 +1,69 @@
+---
+C++ reference: https://en.cppreference.com/w/
+
+Arrow building needs boost
+sudo apt-get install libboost-all-dev
+
+Arrow C++ readme has some good details.
+
+DCMAKE_INSTALL_PREFIX (see ~/cmake.sh)
+cmake -DCMAKE_INSTALL_PREFIX=/usr ..
+
+
+Import in eclipse: or use KDevelop, that seem to be decent
+cmake -G "Eclipse CDT4 - Unix Makefiles" ./
+
+https://stackoverflow.com/questions/17131744/eclipse-cdt-indexer-does-not-know-c11-containers
+
+
+gtest/gtest.h: No such file or directory
+libgtest-dev install
+
+Then compile it from source:
+sudo apt-get install libgtest-dev
+Note that this package only install source files. You have to compile the code yourself to create the necessary library files. These source files should be located at /usr/src/gtest. Browse to this folder and use cmake to compile the library:
+
+sudo apt-get install cmake # install cmake
+cd /usr/src/gtest
+sudo cmake CMakeLists.txt
+sudo make
+
+# copy or symlink libgtest.a and libgtest_main.a to your /usr/lib folder
+sudo cp *.a /usr/lib
+Now to compile your programs that uses gtest, you have to link it with:
+
+-lgtest -lgtest_main
+
+
+
+
+So, there are RecordBatchFileReader and RecordBatchFileWriter. These inherit from RecordBatchStreamWriter
+and from RecordBatchWriter (and associated reader classes)
+
+Reader takes:
+
+static Status Open([INPUT] io::RandomAccessFile* file,
+                     [OUTPUT] std::shared_ptr<RecordBatchFileReader>* reader);
+
+RandomAccessFile is
+class ARROW_EXPORT RandomAccessFile : public InputStream, public Seekable -> This I can implement for Crail
+
+Currently this class is implemented by
+- BufferReader
+- HdfsReadableFile
+- MemoryMappedFile
+- ReadWriteFileInterface
+- ReadableFile
+
+
+
+***
+Step 1: install local arrow library, clone from github, checkout the specific version and then
+mkdir release
+cd release
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/home/atr/local/ ..
+make -j ?? && make install
+
+Make sure LD_LIBRARY_PATH is set properly, it was picked up immediately.
+
+Next missing is gtest library
