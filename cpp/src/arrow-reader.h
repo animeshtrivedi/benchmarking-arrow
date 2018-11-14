@@ -42,6 +42,7 @@ public:
     arrow::Status consume_float8(std::shared_ptr<arrow::Array> col);
     arrow::Status init();
     arrow::Status run();
+    arrow::Status runWithDebug();
 };
 
 

@@ -67,6 +67,34 @@ arrow::Status ArrowReader::run() {
     return arrow::Status::OK();
 }
 
+arrow::Status ArrowReader::runWithDebug() {
+    int num_batches = this->_sptr_file_reader.get()->num_record_batches();
+    //int64_t *load_time = new int64_t[num_batches];
+    //int64_t *process_time = new int64_t[num_batches];
+    int64_t avg_load=0, avg_process=0;
+    auto start = std::chrono::high_resolution_clock::now();
+    // step 1: load the batch and then index using the type
+    for (int i = 0; i < num_batches; ++i) {
+        std::shared_ptr<arrow::RecordBatch> chunk;
+        auto s1 = std::chrono::high_resolution_clock::now();
+        RETURN_NOT_OK(this->_sptr_file_reader.get()->ReadRecordBatch(i, &chunk));
+        auto s2 = std::chrono::high_resolution_clock::now();
+        RETURN_NOT_OK(this->process_batch(chunk));
+        auto s3 = std::chrono::high_resolution_clock::now();
+
+        //load_time[i] = std::chrono::duration_cast<std::chrono::nanoseconds>(s2 - s1).count();
+        //process_time[i] = std::chrono::duration_cast<std::chrono::nanoseconds>(s3 - s2).count();
+        avg_load+=std::chrono::duration_cast<std::chrono::nanoseconds>(s2 - s1).count(); //load_time[i];
+        avg_process+=std::chrono::duration_cast<std::chrono::nanoseconds>(s3 - s2).count();//process_time[i];
+    }
+    //TODO: clean up ?
+    auto end = std::chrono::high_resolution_clock::now();
+    this->_runtime_in_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+    //now print these details:
+    std::cout << " load " << avg_load/num_batches << " nsec, consume " << avg_process/num_batches << " nsec \n";
+    return arrow::Status::OK();
+}
+
 arrow::Status  ArrowReader::process_batch(std::shared_ptr<arrow::RecordBatch> batch){
     int num_cols = batch.get()->num_columns();
     for(int i = 0; i < num_cols; i++){
@@ -87,6 +115,7 @@ arrow::Status ArrowReader::consume_int32(std::shared_ptr<arrow::Array> col){
     std::shared_ptr<arrow::Int32Array> data2 = std::dynamic_pointer_cast<arrow::Int32Array>(col);
     const int* raw_val = data2.get()->raw_values();
     for(int64_t i = 0; i < col.get()->length(); i++){
+        // for all valid values, the isValid is optimized to return immediately by checking if the bitmap is NULL
         if(col.get()->IsValid(i)){
             this->_total_Ints++;
             this->_checksum+= raw_val[i];
