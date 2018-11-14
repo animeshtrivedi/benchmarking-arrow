@@ -1,6 +1,20 @@
-//
-// Created by atr on 30.10.18.
-//
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 
 #ifndef BENCHMARK_ARROW_CPP_BENCHMARKRESULT_H
 #define BENCHMARK_ARROW_CPP_BENCHMARKRESULT_H
@@ -8,15 +22,18 @@
 
 class BenchmarkResult {
 protected:
+    //cache line 1
+    long _runtime_in_ns;
+    long _checksum;
     long _total_Ints;
     long _total_Longs;
     long _total_Float4;
     long _total_Float8;
     long _total_Binary;
     long _total_BinarySize;
+    // cache line 2
     long _total_Rows;
-    long _checksum;
-    long _runtime_in_ns;
+
 public:
     BenchmarkResult(){
         _total_Ints = 0;
