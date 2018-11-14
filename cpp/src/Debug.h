@@ -18,6 +18,8 @@
 #ifndef BENCHMARK_ARROW_CPP_DEBUG_H
 #define BENCHMARK_ARROW_CPP_DEBUG_H
 
+#include <iostream>
+
 //#define DEBUG
 
 //#define _info(__x) std::cout << __FUNCTION__ << __FILE__ << __LINE__ << __x;
