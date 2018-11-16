@@ -23,21 +23,24 @@ public class ArrowReaderUnsafe extends ArrowReader {
     ArrowReaderUnsafe(){}
 
     private boolean isValid(long baseAddress, int rowIndex){
-        final int byteIndex = rowIndex >> 3;
-        final byte b = Platform.getByte(null, baseAddress+byteIndex);
-        final int bitIndex = rowIndex & 7;
-        // v1 - default from the arrow source code
-        //return Long.bitCount(b & (1L << bitIndex)) == 0;
-        //v2
-        return (b & (1L << bitIndex)) != 0;
+//        final int byteIndex = rowIndex >> 3;
+//        final byte b = Platform.getByte(null, baseAddress+byteIndex);
+//        final int bitIndex = rowIndex & 7;
+//        // v1 - default from the arrow source code
+//        //return Long.bitCount(b & (1L << bitIndex)) == 0;
+//        //v2
+//        return (b & (1 << bitIndex)) != 0;
+
+        return (Platform.getByte(null, baseAddress + (rowIndex >> 3)) & (1 << (rowIndex & 7))) != 0;
     }
 
     final public void consumeInt4(IntVector vector) {
         final int valCount = vector.getValueCount();
         final long valididtyAddress = vector.getValidityBufferAddress();
-        // this has lots of calculations
-        final boolean allValid = false; //vector.getNullCount() == 0;
         long dataAddress = vector.getDataBufferAddress();
+        // this has lots of calculations
+        final boolean allValid = vector.getNullCount() == 0;
+
         long totalIntx = 0, checksum = 0;
         if(allValid){
             for (int i = 0; i < valCount; i++) {
@@ -53,6 +56,42 @@ public class ArrowReaderUnsafe extends ArrowReader {
                 }
                 dataAddress += 4;//IntVector.TYPE_WIDTH;
             }
+        }
+        this.intCount+=totalIntx;
+        this.checksum+=checksum;
+    }
+
+    final public void _consumeInt4(IntVector vector) {
+        if(vector.getNullCount() == 0 || true)
+            fast_consumeInt4(vector);
+        else
+            slow_consumeInt4(vector);
+    }
+
+    private void fast_consumeInt4(IntVector vector) {
+        final int valCount = vector.getValueCount();
+        long dataAddress = vector.getDataBufferAddress();
+        long checksum = 0;
+        for (int i = 0; i < valCount; i++) {
+            checksum += Platform.getInt(null, dataAddress);
+            dataAddress += 4;//IntVector.TYPE_WIDTH;
+        }
+        this.intCount+=valCount;
+        this.checksum+=checksum;
+    }
+
+    private void slow_consumeInt4(IntVector vector) {
+        final int valCount = vector.getValueCount();
+        final long valididtyAddress = vector.getValidityBufferAddress();
+        final byte[] map = {1, 2, 4, 8, 16, 32, 64, (byte) 128};
+        long dataAddress = vector.getDataBufferAddress();
+        long totalIntx = 0, checksum = 0;
+        for (int i = 0; i < valCount; i++) {
+            if((Platform.getByte(null, valididtyAddress + (i >> 3)) & map[(i & 7)]) != 0) {
+                totalIntx++;
+                checksum += Platform.getInt(null, dataAddress);
+            }
+            dataAddress += 4;//IntVector.TYPE_WIDTH;
         }
         this.intCount+=totalIntx;
         this.checksum+=checksum;

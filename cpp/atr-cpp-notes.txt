@@ -59,9 +59,53 @@ Step 1: install local arrow library, clone from github, checkout the specific ve
 mkdir release
 cd release
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/home/atr/local/ ..
+cmake -DCMAKE_BUILD_TYPE=Release -DARROW_USE_SSE=ON -DCMAKE_INSTALL_PREFIX=/home/atr/local/ ..
 make -j ?? && make install
 
 Make sure LD_LIBRARY_PATH is set properly, it was picked up immediately.
 
 
 ***
+
+diff --git a/cpp/src/arrow/io/file.cc b/cpp/src/arrow/io/file.cc
+index 6cd1546f..db2d5b30 100644
+--- a/cpp/src/arrow/io/file.cc
++++ b/cpp/src/arrow/io/file.cc
+@@ -376,7 +376,8 @@ class MemoryMappedFile::MemoryMap : public MutableBuffer {
+       is_mutable_ = true;
+     } else {
+       prot_flags_ = PROT_READ;
+-      map_mode_ = MAP_PRIVATE;  // Changes are not to be committed back to the file
++      std::cout << "Are we here, in mmap reading mode, I am changing it MAP_SHARED | MAP_POPULATE \n";
++      map_mode_ = MAP_SHARED | MAP_POPULATE; //PRIVATE;  // Changes are not to be committed back to the file
+       RETURN_NOT_OK(file_->OpenReadable(path));
+
+       is_mutable_ = false;
+atr@flex13:~/zrl/github/external/apache/arrow/cpp/release$
+
+
+diff --git a/cpp/CMakeLists.txt b/cpp/CMakeLists.txt
+index 43215b63..284bc97d 100644
+--- a/cpp/CMakeLists.txt
++++ b/cpp/CMakeLists.txt
+@@ -28,6 +28,8 @@ string(REGEX MATCH
+
+ project(arrow VERSION "${ARROW_BASE_VERSION}")
+
++set(CMAKE_CXX_COMPILER g++)
++
+ set(ARROW_VERSION_MAJOR "${arrow_VERSION_MAJOR}")
+ set(ARROW_VERSION_MINOR "${arrow_VERSION_MINOR}")
+ set(ARROW_VERSION_PATCH "${arrow_VERSION_PATCH}")
+@@ -360,7 +362,7 @@ set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS}")
+ string(REPLACE "-std=c++11" "" CMAKE_C_FLAGS ${CMAKE_C_FLAGS})
+
+ # Add C++-only flags, like -std=c++11
+-set(CMAKE_CXX_FLAGS "${CXX_ONLY_FLAGS} ${CMAKE_CXX_FLAGS}")
++set(CMAKE_CXX_FLAGS "${CXX_ONLY_FLAGS} ${CMAKE_CXX_FLAGS}  -O2 -Ofast -ffast-math -funroll-loops -march=native")
+
+ # ASAN / TSAN / UBSAN
+ if(ARROW_FUZZING)
+@@ -386,6 +388,7 @@ if ("${ARROW_GENERATE_COVERAGE}")
+   endif()
+ endif()

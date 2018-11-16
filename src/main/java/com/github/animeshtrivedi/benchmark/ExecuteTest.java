@@ -30,7 +30,12 @@ public class ExecuteTest {
         try {
             DataInterface[] ops = new DataInterface[Configuration.parallel];
 
-            if (Configuration.testName.compareToIgnoreCase("datagen") == 0) {
+            if(Configuration.testName.compareToIgnoreCase("unsafebench") == 0){
+                for (int i = 0; i < Configuration.parallel; i++) {
+                    UnsafeBenchmark w = new UnsafeBenchmark();
+                    ops[i] = w;
+                }
+            } else if (Configuration.testName.compareToIgnoreCase("datagen") == 0) {
                 if(Configuration.outputDir == null){
                     throw new Exception("Data output directory is null, please give a valid name using -o");
                 }

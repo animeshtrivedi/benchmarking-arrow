@@ -136,7 +136,7 @@ public class ArrowIntReader extends BenchmarkResults {
         this.runtimeInNS = System.nanoTime() - s;
     }
 
-    public void runOnHeap(){
+    public void runOnHeapTrace(){
         long avg_load = 0, avg_consume = 0;
         try {
             // reading the file block by block
@@ -162,17 +162,32 @@ public class ArrowIntReader extends BenchmarkResults {
         }
     }
 
+    public void runOnHeap(){
+        try {
+            // reading the file block by block
+            for (int i = 0; i < arrowBlocks.size(); i++) {
+                ArrowBlock block = arrowBlocks.get(i);
+                this.channel.position(block.getOffset() + block.getMetadataLength());
+                buf.clear();
+                // clear the buffer and reuse it again and again
+                this.channel.read(buf);
+                consumeIntBatchOnHeap(buf, bitmapSize, (int) block.getBodyLength());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public void runOffHeap(){
         try {
             // reading the file block by block
             for (int i = 0; i < arrowBlocks.size(); i++) {
-                //System.err.println("\t " + JavaUtils.toString(arrowBlocks.get(i)));
                 ArrowBlock block = arrowBlocks.get(i);
                 this.channel.position(block.getOffset() + block.getMetadataLength());
                 buf.clear();
                 this.channel.read(buf);
-                //consumeIntBatchDirect(buf, bitmapSize, (int) block.getBodyLength());
-                consumeIntBatchDirectNullCheck(buf, bitmapSize, (int) block.getBodyLength());
+                consumeIntBatchDirect(buf, bitmapSize, (int) block.getBodyLength());
+                //consumeIntBatchDirectNullCheck(buf, bitmapSize, (int) block.getBodyLength());
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -215,14 +230,14 @@ public class ArrowIntReader extends BenchmarkResults {
     }
 
     private void consumeIntBatchDirect(ByteBuffer buf, int bitmapSize, int bodySize) throws Exception{
-        long address = ((DirectBuffer) buf).address();
+        final long address = ((DirectBuffer) buf).address();
         for(int k = bitmapSize; k < bodySize; k+=Integer.BYTES){
-            this.intCount++;
             //this.checksum+=buf.getInt(k);
             //this.checksum+=bytesToInt(buf.array(), k);
             //System.err.println(Platform.getInt(null, address+k));
-            this.checksum+=Platform.getInt(null, address+k);
+            this.checksum+=Platform.getInt(null, address + k);
         }
+        this.intCount+=((bodySize - bitmapSize)>>2); //divide by 4 for the integer size
     }
 
     private boolean isNull(long baseAddress, int rowIndex){
@@ -249,20 +264,20 @@ public class ArrowIntReader extends BenchmarkResults {
 
 
     private void consumeIntBatchDirectNullCheck(ByteBuffer buf, int bitmapSize, int bodySize) throws Exception{
-        long address = ((DirectBuffer) buf).address();
+        final byte[] map = {1, 2, 4, 8, 16, 32, 64, (byte) 128};
+        final long address = ((DirectBuffer) buf).address();
         long k = address + bitmapSize;
+        long intCountx = 0, checkSum = 0;
         for(int r = 0; r < Configuration.arrowBlockSizeInRows; r++){
-            if(!isNull(address, r)){
-                this.intCount++;
-                //this.checksum+=buf.getInt(k);
-                //this.checksum+=bytesToInt(buf.array(), k);
-                //System.err.println(Platform.getInt(null, address+k));
-                this.checksum+=Platform.getInt(null, k);
+            if((Platform.getByte(null, address + (r >> 3)) & map[(r & 7)]) != 0) {
+                intCountx++;
+                checkSum+=Platform.getInt(null, k);
             }
             k+=Integer.BYTES;
         }
+        this.intCount+= intCountx;
+        this.checksum+= checkSum;
     }
-
 
     private void consumeIntBatchDirectNullCheckWithAlloc(ByteBuffer bufx, int bitmapSize, int bodySize) throws Exception{
         ArrowBuf arrowBuffer = this.allocator.buffer(bodySize);
