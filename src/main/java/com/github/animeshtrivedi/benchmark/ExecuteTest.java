@@ -30,7 +30,12 @@ public class ExecuteTest {
         try {
             DataInterface[] ops = new DataInterface[Configuration.parallel];
 
-            if(Configuration.testName.compareToIgnoreCase("unsafebench") == 0){
+            if(Configuration.testName.compareToIgnoreCase("peakperformance") == 0){
+                for (int i = 0; i < Configuration.parallel; i++) {
+                    PeakPerformance w = new PeakPerformance();
+                    ops[i] = w;
+                }
+            } else if(Configuration.testName.compareToIgnoreCase("unsafebench") == 0){
                 for (int i = 0; i < Configuration.parallel; i++) {
                     UnsafeBenchmark w = new UnsafeBenchmark();
                     ops[i] = w;
