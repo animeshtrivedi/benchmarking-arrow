@@ -29,6 +29,7 @@
     <encoding>UTF-8</encoding>
     <scala.version>2.11.8</scala.version>
     <scala.compat.version>2.11</scala.compat.version>
+    <arrow.version>0.11.0</arrow.version>
   </properties>
 
   <dependencies>
@@ -57,20 +58,20 @@
     <dependency>
       <groupId>org.apache.arrow</groupId>
       <artifactId>arrow-java-root</artifactId>
-      <version>0.10.0</version>
+      <version>${arrow.version}</version>
       <type>pom</type>
     </dependency>
     <!-- https://mvnrepository.com/artifact/org.apache.arrow/arrow-memory -->
     <dependency>
       <groupId>org.apache.arrow</groupId>
       <artifactId>arrow-memory</artifactId>
-      <version>0.10.0</version>
+      <version>${arrow.version}</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/org.apache.arrow/arrow-vector -->
     <dependency>
       <groupId>org.apache.arrow</groupId>
       <artifactId>arrow-vector</artifactId>
-      <version>0.10.0</version>
+      <version>${arrow.version}</version>
     </dependency>
     <dependency>
       <groupId>org.scala-lang</groupId>

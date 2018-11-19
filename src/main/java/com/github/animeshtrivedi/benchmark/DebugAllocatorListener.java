@@ -18,6 +18,7 @@ package com.github.animeshtrivedi.benchmark;
 
 import org.apache.arrow.memory.AllocationListener;
 import org.apache.arrow.memory.AllocationOutcome;
+import org.apache.arrow.memory.BufferAllocator;
 
 public class DebugAllocatorListener implements AllocationListener {
     long allocCalled;
@@ -42,5 +43,15 @@ public class DebugAllocatorListener implements AllocationListener {
     public boolean onFailedAllocation(long l, AllocationOutcome allocationOutcome) {
         System.err.println("Failed buffer allocation " + l + " bytes");
         return false;
+    }
+
+    @Override
+    public void onChildAdded(BufferAllocator bufferAllocator, BufferAllocator bufferAllocator1) {
+
+    }
+
+    @Override
+    public void onChildRemoved(BufferAllocator bufferAllocator, BufferAllocator bufferAllocator1) {
+
     }
 }
