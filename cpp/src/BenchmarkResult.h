@@ -78,6 +78,10 @@ public:
     long totalBytesProcessed();
     double getBandwidthGbps();
     std::string summary();
+
+    void run(){}
+    void runWithDebug(){}
+    void init(){}
 };
 
 #endif //BENCHMARK_ARROW_CPP_BENCHMARKRESULT_H

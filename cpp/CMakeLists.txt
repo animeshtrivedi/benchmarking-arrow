@@ -28,4 +28,4 @@ link_libraries(pthread ${ARROW_LIBRARY})
 
 include_directories("${PROJECT_SOURCE_DIR}" "/home/atr/local/include/")
 
-add_executable(benchmark-arrow-cpp ${PROJECT_SOURCE_DIR}/main.cc src/arrow-reader-example.h src/arrow-reader-example.cpp src/common.h src/arrow-writer-example.cpp src/arrow-writer-example.h src/BenchmarkResult.cpp src/BenchmarkResult.h src/arrow-reader.cpp src/arrow-reader.h src/InMemoryFile.cpp src/InMemoryFile.h src/Debug.h src/PeakPerformance.cpp src/PeakPerformance.h src/CLikeRoutine.cpp src/CLikeRoutine.h)
+add_executable(benchmark-arrow-cpp ${PROJECT_SOURCE_DIR}/main.cc src/arrow-reader-example.h src/arrow-reader-example.cpp src/common.h src/arrow-writer-example.cpp src/arrow-writer-example.h src/BenchmarkResult.cpp src/BenchmarkResult.h src/arrow-reader.cpp src/arrow-reader.h src/InMemoryFile.cpp src/InMemoryFile.h src/Debug.h src/PeakPerformance.cpp src/PeakPerformance.h src/CLikeRoutine.cpp src/CLikeRoutine.h src/PeakPerformanceJava.h src/PeakPerformanceJava.cpp)

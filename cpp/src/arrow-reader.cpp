@@ -39,7 +39,7 @@ int ArrowReader::init() {
     std::shared_ptr<InMemoryFile> in_memory_file = std::make_shared<InMemoryFile>(this->_file_name);
 
     //choose one or other
-    if(!true){
+    if(true){
         this->_sptr_file = this->_sptr_mmaped_filex;
     } else {
         this->_sptr_file = in_memory_file;

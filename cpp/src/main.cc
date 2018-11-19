@@ -20,6 +20,7 @@
 #include "arrow-reader.h"
 #include "PeakPerformance.h"
 #include "CLikeRoutine.h"
+#include "PeakPerformanceJava.h"
 
 int main(int argc, char **argv) {
     std::cout<<"--------------------------------------------------------------------------\n";
@@ -34,7 +35,7 @@ int main(int argc, char **argv) {
   s = ex->read();
 #endif
 
-#if 1
+#if 0
   // this is benchmark code
     ArrowReader *r = NULLPTR;
   if(argc > 1){
@@ -46,8 +47,9 @@ int main(int argc, char **argv) {
       r = new ArrowReader("/home/atr/zrl/external/github/animeshtrivedi/arrow-on-crail/data/f100-ss-p15.arrow");
   }
 #endif
-//#if 1
-//  PeakPerformance *r = new PeakPerformance(atol(argv[1]), atol(argv[2]));
+#if 1
+  //PeakPerformance *r = new PeakPerformance(atol(argv[1]), atol(argv[2]));
+  PeakPerformanceJava *r = new PeakPerformanceJava();
   r->init();
   if(argc > 2 && strcasecmp(argv[2], "d") == 0){
       std::cout<<"Running _with_ debug \n";
@@ -59,10 +61,10 @@ int main(int argc, char **argv) {
 
   std::cout << r->summary() << "\n";
 
-//#else
-//  CLikeRoutine *r = new CLikeRoutine();
-//  r->run();
-//#endif
+#else
+  CLikeRoutine *r = new CLikeRoutine();
+  r->run();
+#endif
 //
 //#if 0
 //  long csum = r->getChecksum();

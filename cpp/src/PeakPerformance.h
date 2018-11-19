@@ -47,7 +47,7 @@ public:
         for(long i = 0; i < rows;i++)
             temp_data[i] = i;
         for(long i = 0; i < this->bitmapSize; i++)
-            temp_bitmap[i] = 0xFF;
+            temp_bitmap[i] = 0xFF; // all valid
 
         //assign
         bitmap = temp_bitmap;
@@ -56,9 +56,9 @@ public:
         validRows = validValues;
     }
 
-    void run(){
+    inline void run(){
         localFunc();
-        classFunc();
+        //classFunc();
     }
     void classFunc();
     void localFunc();

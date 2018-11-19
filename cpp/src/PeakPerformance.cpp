@@ -38,16 +38,20 @@ void PeakPerformance::run() {
 #endif
 
 void PeakPerformance::localFunc() {
+    this->_total_Ints = 0;
+    this->_checksum = 0;
+    this->_runtime_in_ns = 0;
     long totalInts=0, checksum=0;
     const long rowx = this->rows;
     const int *ptr = this->data;
     const uint8_t *b = this->bitmap;
-    std::cout << " version 2 \n";
+    std::cout << " version 4 \n";
     auto start = std::chrono::high_resolution_clock::now();
     // we walk through the array and materialize values
     for(long i = 0; i < rowx; i++){
         //if (IsValid(i)) {
-        if (PeakPerformance::GetBit(b, i)){
+        //if (PeakPerformance::GetBit(b, i)){
+        if (b[i >> 3L ] & ( 1L << (i & 0x7L))){
             totalInts++;
             checksum+=ptr[i];
         }

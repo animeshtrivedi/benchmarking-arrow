@@ -21,11 +21,11 @@ import java.nio.ByteBuffer;
 // The idea of this class is to emulate how Arrow reads
 // a file
 public class PeakPerformance extends BenchmarkResults {
-    public static int MAX_INT_ITEMS = 1 << 28;
-    private int items;
-    private int loop;
-    private ByteBuffer bitmapBuffer;
-    private ByteBuffer intValueBuffer;
+    final public static int MAX_INT_ITEMS = 1 << 28;
+    final private long items;
+    final private int loop;
+    final private ByteBuffer bitmapBuffer;
+    final private ByteBuffer intValueBuffer;
 
     PeakPerformance() throws Exception {
         this(100000000, true, 1000000, 100);
@@ -36,7 +36,7 @@ public class PeakPerformance extends BenchmarkResults {
             throw new Exception("items cannot be more than the max ");
         }
         this.loop = loop;
-        this.items = items;
+        this.items = (long) items;
         int intSize = items << 2;
         int bitmapSize = items >> 3;
         bitmapBuffer = ByteBuffer.allocateDirect(bitmapSize);
@@ -58,19 +58,18 @@ public class PeakPerformance extends BenchmarkResults {
         System.out.println("initialization done");
     }
 
-    @Override
-    public void run() {
+    public void runNoRoll() {
         long checkSum = 0, count = 0;
         final long bitmapAddress = ((sun.nio.ch.DirectBuffer) bitmapBuffer).address();
         final long valueAddress = ((sun.nio.ch.DirectBuffer) intValueBuffer).address();
-        final byte[] map = {1, 2, 4, 8, 16, 32, 64, (byte) 128};
+        //final byte[] map = {1, 2, 4, 8, 16, 32, 64, (byte) 128};
         int loopCount = 0;
         long intCount=0, runningCheckSum=0;
 
         final long start = System.nanoTime();
         while (loopCount < loop) {
-            for (int i = 0; i < items; i++) {
-                if((Platform.getByte(null, bitmapAddress + (i >> 3)) & map[(i & 7)]) != 0) {
+            for (long i = 0; i < items; i++) {
+                if((Platform.getByte(null, bitmapAddress + (i >> 3L)) & (1L << (i & 7L))) != 0) {
                     intCount++;
                     runningCheckSum += Platform.getInt(null, valueAddress + (i << 2));
                 }
@@ -81,5 +80,70 @@ public class PeakPerformance extends BenchmarkResults {
         this.runtimeInNS = end - start;
         this.checksum+= runningCheckSum;
         this.intCount+= intCount;
+    }
+
+    public void runRoll() {
+        long checkSum = 0, count = 0;
+        final long bitmapAddress = ((sun.nio.ch.DirectBuffer) bitmapBuffer).address();
+        final long valueAddress = ((sun.nio.ch.DirectBuffer) intValueBuffer).address();
+        //final byte[] map = {1, 2, 4, 8, 16, 32, 64, (byte) 128};
+        int loopCount = 0;
+        long intCount=0, runningCheckSum=0;
+
+        final long start = System.nanoTime();
+        while (loopCount < loop) {
+            for (long i = 0; i < items;) {
+                byte bx = Platform.getByte(null, bitmapAddress + (i >> 3L));
+                if((bx & 1) != 0) {
+                    intCount++;
+                    runningCheckSum += Platform.getInt(null, valueAddress + (i << 2));
+                }
+                i++;
+                if((bx & 2) != 0) {
+                    intCount++;
+                    runningCheckSum += Platform.getInt(null, valueAddress + (i << 2));
+                }
+                i++;
+                if((bx & 4) != 0) {
+                    intCount++;
+                    runningCheckSum += Platform.getInt(null, valueAddress + (i << 2));
+                }
+                i++;
+                if((bx & 8) != 0) {
+                    intCount++;
+                    runningCheckSum += Platform.getInt(null, valueAddress + (i << 2));
+                }
+                i++;
+                if((bx & 16) != 0) {
+                    intCount++;
+                    runningCheckSum += Platform.getInt(null, valueAddress + (i << 2));
+                }
+                i++;
+                if((bx & 32) != 0) {
+                    intCount++;
+                    runningCheckSum += Platform.getInt(null, valueAddress + (i << 2));
+                }
+                i++;
+                if((bx & 64) != 0) {
+                    intCount++;
+                    runningCheckSum += Platform.getInt(null, valueAddress + (i << 2));
+                }
+                i++;
+                if((bx & 128) != 0) {
+                    intCount++;
+                    runningCheckSum += Platform.getInt(null, valueAddress + (i << 2));
+                }
+                i++;
+            }
+            loopCount++;
+        }
+        final long end = System.nanoTime();
+        this.runtimeInNS = end - start;
+        this.checksum+= runningCheckSum;
+        this.intCount+= intCount;
+    }
+
+    public void run(){
+        runNoRoll();
     }
 }
