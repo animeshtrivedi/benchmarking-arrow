@@ -23,46 +23,60 @@
 #include "PeakPerformanceJava.h"
 
 int main(int argc, char **argv) {
-    std::cout<<"--------------------------------------------------------------------------\n";
-    std::cout<<" usage: \"filename\" (which arrow file to open)] \"d\" (run in the debug mode) \n";
-    std::cout<<"--------------------------------------------------------------------------\n";
+    std::cout << "--------------------------------------------------------------------------\n";
+    std::cout << " usage: \"filename\" (which arrow file to open)] \"d\" (run in the debug mode) \n";
+    std::cout << "--------------------------------------------------------------------------\n";
+    // this is benchmark code
+    ArrowReader *r = NULLPTR;
+    if (argc > 1) {
+        // use the first one as the file name
+        std::cout << "Opening the file : " << argv[1] << "\n";
+        r = new ArrowReader(argv[1]);
+    } else {
+        std::cout
+                << "Opening the _DEFAULT_ file : /home/atr/zrl/external/github/animeshtrivedi/arrow-on-crail/data/f100-ss-p15.arrow" "\n";
+        r = new ArrowReader("/home/atr/zrl/external/github/animeshtrivedi/arrow-on-crail/data/f100-ss-p15.arrow");
+    }
+    r->init();
+
+    if(argc > 2 && strcasecmp(argv[2], "d") == 0){
+        std::cout<<"Running _with_ debug \n";
+        r->runWithDebug();
+    } else {
+        std::cout<<"Running _with_out_ debug \n";
+        r->run();
+    }
+
+    std::cout << r->summary() << "\n";
+    return 0;
+}
+
+#if 0
+
     // this is example code
 #if 0
-  ArrowReadExample *ex = new ArrowReadExample("/");
+    ArrowReadExample *ex = new ArrowReadExample("/");
   std::cout << "location of the object is " << ex << "\n";
   arrow::Status s = ex->init();
   s = ex->debug_show();
   s = ex->read();
 #endif
 
+
 #if 0
-  // this is benchmark code
-    ArrowReader *r = NULLPTR;
-  if(argc > 1){
-      // use the first one as the file name
-      std::cout<<"Opening the file : " << argv[1] << "\n";
-      r = new ArrowReader(argv[1]);
-  } else {
-      std::cout<<"Opening the _DEFAULT_ file : /home/atr/zrl/external/github/animeshtrivedi/arrow-on-crail/data/f100-ss-p15.arrow" "\n";
-      r = new ArrowReader("/home/atr/zrl/external/github/animeshtrivedi/arrow-on-crail/data/f100-ss-p15.arrow");
-  }
-#endif
-#if 1
-  //PeakPerformance *r = new PeakPerformance(atol(argv[1]), atol(argv[2]));
-  PeakPerformanceJava *r = new PeakPerformanceJava();
-  r->init();
-  if(argc > 2 && strcasecmp(argv[2], "d") == 0){
-      std::cout<<"Running _with_ debug \n";
-      r->runWithDebug();
-  } else {
-      std::cout<<"Running _with_out_ debug \n";
-      r->run();
-  }
+    //PeakPerformance *r = new PeakPerformance(atol(argv[1]), atol(argv[2]));
+    PeakPerformanceJava *r = new PeakPerformanceJava();
+    r->init();
+    if(argc > 2 && strcasecmp(argv[2], "d") == 0){
+        std::cout<<"Running _with_ debug \n";
+        r->runWithDebug();
+    } else {
+        std::cout<<"Running _with_out_ debug \n";
+        r->run();
+    }
 
-  std::cout << r->summary() << "\n";
-
-#else
-  CLikeRoutine *r = new CLikeRoutine();
+    std::cout << r->summary() << "\n";
+    CLikeRoutine *r = new CLikeRoutine();
   r->run();
 #endif
 //
@@ -74,5 +88,5 @@ int main(int argc, char **argv) {
 //    std::cout<<"Checksum _MATCHES_ " << "\n";
 //  }
 //#endif
-  return 0;
-}
+
+#endif

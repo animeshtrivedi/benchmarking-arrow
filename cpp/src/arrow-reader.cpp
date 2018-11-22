@@ -30,22 +30,27 @@ ArrowReader::ArrowReader(const char* filename){
 }
 
 int ArrowReader::init() {
-    // Step 1. open the file - mmap
-    arrow::Status st = arrow::io::MemoryMappedFile::Open(this->_file_name,
-            arrow::io::FileMode::READ,
-            &this->_sptr_mmaped_filex);
-    // or in-memory buffer
-    //std::shared_ptr<arrow::io::RandomAccessFile> in_memory_file(new InMemoryFile(this->_file_name));
-    std::shared_ptr<InMemoryFile> in_memory_file = std::make_shared<InMemoryFile>(this->_file_name);
-
     //choose one or other
     if(true){
-        this->_sptr_file = this->_sptr_mmaped_filex;
+#ifdef USE_MMAP
+        std::cout<<"Using the _mmap_ MemoryMappedFile interface for " << this->_file_name << "\n";
+        std::shared_ptr<arrow::io::MemoryMappedFile> file;
+        arrow::Status st = arrow::io::MemoryMappedFile::Open(this->_file_name,
+                                                             arrow::io::FileMode::READ,
+                                                             &file);
+#else
+        std::cout<<"Using the ReadableFile interface for " << this->_file_name << "\n";
+        std::shared_ptr<arrow::io::ReadableFile> file;
+        arrow::Status st = arrow::io::ReadableFile::Open(this->_file_name, &file);
+#endif
+        this->_sptr_file = file;
+
     } else {
-        this->_sptr_file = in_memory_file;
+        std::cout<<"Using the InMemory (my implementation) interface for " << this->_file_name << "\n";
+        this->_sptr_file = std::make_shared<InMemoryFile>(this->_file_name);
     }
     // step 2 open a reader
-    st = arrow::ipc::RecordBatchFileReader::Open(this->_sptr_file,
+    arrow::Status st = arrow::ipc::RecordBatchFileReader::Open(this->_sptr_file,
             &this->_sptr_file_reader);
     // step 3 find schema
     this->_sptr_schema = this->_sptr_file_reader.get()->schema();
