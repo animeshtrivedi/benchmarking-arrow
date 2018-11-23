@@ -26,7 +26,7 @@
 #include "common.h"
 
 #define DO_CONST
-#define USE_MMAP
+//#define USE_MMAP
 
 class ArrowReader : public BenchmarkResult {
 private:

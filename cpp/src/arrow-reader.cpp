@@ -51,7 +51,7 @@ int ArrowReader::init() {
     }
     // step 2 open a reader
     arrow::Status st = arrow::ipc::RecordBatchFileReader::Open(this->_sptr_file,
-            &this->_sptr_file_reader);
+                                                               &this->_sptr_file_reader);
     // step 3 find schema
     this->_sptr_schema = this->_sptr_file_reader.get()->schema();
     // step 4 find blocks
@@ -122,26 +122,29 @@ int ArrowReader::process_batch(std::shared_ptr<arrow::RecordBatch> batch,  long 
     }
     return ret;
 }
-
+#if 1
 int ArrowReader::consume_int32(std::shared_ptr<arrow::Array> col, long &intCount, long &checkSum) const {
     const int* const raw_val = std::dynamic_pointer_cast<arrow::Int32Array>(col).get()->raw_values();
-    const int64_t items = col.get()->length();
+    const unsigned long items = col.get()->length();
     // get the raw data here
     const std::shared_ptr<arrow::ArrayData> data = col.get()->data();
     // get the raw bitmap
     const uint8_t *bitmap = col.get()->null_bitmap_data();
     // use the local variables instead of using the class
-    long intsx = 0, checksumx = 0;
+    unsigned long intsx = 0, checksumx = 0;
     if(bitmap == NULLPTR){
         // fast path
-        for (int64_t i = 0; i < items; i++){
+        for (unsigned long i = 0; i < items; i++){
             checksumx+=raw_val[i];
         }
         intsx = items;
     } else {
         // slow path
-        for (int64_t i = 0, j = data->offset; i < items; i++, j++) {
-            if ((bitmap[j >> 3] & kBitmask[j & 0x07]) != 0){
+        for (unsigned long i = 0, j = data->offset; i < items; i++, j++) {
+            //if ((bitmap[j >> 3] & (1 << (j & 0x07))) != 0){
+            //if ((bitmap[j >> 3] & kBitmask[j & 0x07]) != 0){
+            if ((bitmap[j / 8] & kBitmask[j % 8]) != 0){ // gives 14.1 Gbps
+            //if ((bitmap[j / 8] & kBitmask[(j & 0x07)]) != 0){ // gives 18.08 Gbps
                 intsx++;
                 checksumx += raw_val[i];
             }
@@ -151,6 +154,25 @@ int ArrowReader::consume_int32(std::shared_ptr<arrow::Array> col, long &intCount
     checkSum+=checksumx;
     return 0;
 }
+#else
+
+int ArrowReader::consume_int32(std::shared_ptr<arrow::Array> col, long &intCount, long &checkSum) const {
+    const int* const raw_val = std::dynamic_pointer_cast<arrow::Int32Array>(col).get()->raw_values();
+    const int64_t items = col.get()->length();
+    // use the local variables instead of using the class
+    long intsx = 0, checksumx = 0;
+    // slow path
+    for (int64_t i = 0; i < items; i++) {
+        if (col->IsValid(i)){
+            intsx++;
+            checksumx += raw_val[i];
+        }
+    }
+    intCount+=intsx;
+    checkSum+=checksumx;
+    return 0;
+}
+#endif
 
 #else
 int ArrowReader::run() {
